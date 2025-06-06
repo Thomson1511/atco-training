@@ -10,10 +10,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "dev": "vite",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "eject": "react-scripts eject"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
