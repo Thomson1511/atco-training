@@ -1,11 +1,17 @@
 {
   "name": "my-airspace-app",
+  "homepage": "https://Thomson1511.github.io/atco-training",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
     "dev": "vite",
-    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -27,6 +33,7 @@
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
+    "gh-pages": "^6.3.0",
     "globals": "^16.0.0",
     "tailwindcss": "^3.4.17",
     "vite": "^6.3.5"
