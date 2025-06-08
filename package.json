@@ -16,11 +16,18 @@
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
+    "@maptiler/sdk": "^3.3.0",
+    "@svgdotjs/svg.js": "^3.2.4",
     "autoprefixer": "^10.4.21",
+    "d3-geo": "^3.1.1",
     "firebase": "^11.9.0",
+    "leaflet": "^1.9.4",
+    "maplibre-gl": "^5.6.0",
     "postcss": "^8.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-leaflet": "^5.0.0",
+    "react-map-gl": "^8.0.4",
     "react-router-dom": "^7.6.2"
   },
   "devDependencies": {
@@ -33,6 +40,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "gh-pages": "^6.3.0",
     "globals": "^16.0.0",
+    "react-app-rewired": "^2.2.1",
     "tailwindcss": "^3.4.17",
     "vite": "^6.3.5"
   }
