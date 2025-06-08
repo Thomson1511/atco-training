@@ -8,11 +8,22 @@ export default function Airports() {
   const [airports, setAirports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
   const mapContainer = useRef(null);
   const map = useRef(null);
 
   // MapTiler API kulcs
   const mapTilerKey = 'Tx0tJslnlndsHe3hs95w';
+
+  // Fisher-Yates shuffle algoritmus
+  const shuffleArray = (array) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  };
 
   // Repülőterek lekérése Firestore-ból
   useEffect(() => {
@@ -24,6 +35,11 @@ export default function Airports() {
           ...doc.data(),
         }));
         setAirports(airportList);
+        // Véletlenszerűen kiválaszt egy repülőteret a kvízhez
+        if (airportList.length > 0) {
+          const shuffled = shuffleArray(airportList);
+          setCurrentQuestion(shuffled[0]);
+        }
         setLoading(false);
       } catch (err) {
         setError('Nem sikerült betölteni a repülőtereket: ' + err.message);
@@ -68,7 +84,19 @@ export default function Airports() {
         new Marker({ element: markerElement })
           .setLngLat([parseFloat(Long), parseFloat(Lat)])
           .setPopup(popup)
-          .addTo(map.current);
+          .addTo(map.current)
+          .getElement()
+          .addEventListener('click', () => {
+            // Ellenőrzi, hogy a kiválasztott marker helyes-e
+            if (currentQuestion && icaoCode === currentQuestion['ICAO Code']) {
+              alert('Helyes válasz!');
+              // Új kérdés kiválasztása
+              const shuffled = shuffleArray(airports);
+              setCurrentQuestion(shuffled[0]);
+            } else {
+              alert('Helytelen válasz! Próbáld újra.');
+            }
+          });
       }
     });
 
@@ -78,7 +106,7 @@ export default function Airports() {
         map.current.remove();
       }
     };
-  }, [airports]);
+  }, [airports, currentQuestion]);
 
   if (loading) {
     return (
@@ -97,11 +125,20 @@ export default function Airports() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div
-        ref={mapContainer}
-        className="w-full h-[800px] rounded-lg shadow"
-      ></div>
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <div className="relative w-full max-w-5xl p-4">
+        {currentQuestion && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow z-10">
+            <p className="text-lg font-bold text-center">
+              Keresd meg a térképen: {currentQuestion['ICAO Code']}
+            </p>
+          </div>
+        )}
+        <div
+          ref={mapContainer}
+          className="w-full h-[800px] rounded-lg shadow"
+        ></div>
+      </div>
     </div>
   );
 }
