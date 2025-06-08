@@ -48,14 +48,24 @@ export default function Airports() {
       zoom: 2, // Kezdeti nagyítási szint
     });
 
-    // Markerek hozzáadása a repülőterekhez
+    // Markerek hozzáadása a repülőterekhez piros pöttyökként
     airports.forEach(airport => {
       const { Lat, Long, 'ICAO Code': icaoCode, Airport: airportName } = airport;
       if (Lat && Long) {
         const popup = new Popup({ offset: 25 }).setHTML(
           `<h3>${icaoCode}</h3><p>${airportName}</p>`
         );
-        new Marker()
+
+        // Egyéni piros pötty marker
+        const markerElement = document.createElement('div');
+        markerElement.style.backgroundColor = 'red';
+        markerElement.style.width = '12px';
+        markerElement.style.height = '12px';
+        markerElement.style.borderRadius = '50%';
+        markerElement.style.border = '2px solid white';
+        markerElement.style.cursor = 'pointer';
+
+        new Marker({ element: markerElement })
           .setLngLat([parseFloat(Long), parseFloat(Lat)])
           .setPopup(popup)
           .addTo(map.current);
@@ -73,7 +83,6 @@ export default function Airports() {
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
-        <h1 className="text-2xl font-bold mb-4">Repülőterek Térképe</h1>
         <p>Betöltés...</p>
       </div>
     );
@@ -82,7 +91,6 @@ export default function Airports() {
   if (error) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
-        <h1 className="text-2xl font-bold mb-4">Repülőterek Térképe</h1>
         <p className="text-red-500">{error}</p>
       </div>
     );
@@ -90,10 +98,9 @@ export default function Airports() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4 text-center">Repülőterek Térképe</h1>
       <div
         ref={mapContainer}
-        className="w-full h-[600px] rounded-lg shadow"
+        className="w-full h-[800px] rounded-lg shadow"
       ></div>
     </div>
   );
