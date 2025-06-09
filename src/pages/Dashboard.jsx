@@ -124,10 +124,10 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold text-center">Aircrafts</h3>
           </Link>
           <Link
-            to="/dashboard/airspaces"
+            to="/dashboard/Airports"
             className="bg-white p-6 rounded-lg shadow hover:bg-gray-50 transition duration-200"
           >
-            <h3 className="text-lg font-semibold text-center">Airspaces</h3>
+            <h3 className="text-lg font-semibold text-center">Airports</h3>
           </Link>
           <Link
             to="/dashboard/callsigns"
