@@ -6,12 +6,16 @@ import '@maptiler/sdk/dist/maptiler-sdk.css';
 
 export default function Airports() {
   const [airports, setAirports] = useState([]);
+  const [shuffledQuestions, setShuffledQuestions] = useState([]); // Kevert kérdéslista
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
+  const [errorCount, setErrorCount] = useState(0); // Helytelen válaszok számláló
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0); // Jelenlegi kérdés sorszáma
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const markers = useRef({}); // Ref a markerek tárolására
 
   // MapTiler API kulcs
   const mapTilerKey = 'Tx0tJslnlndsHe3hs95w';
@@ -31,6 +35,7 @@ export default function Airports() {
 
   // Repülőterek lekérése Firestore-ból
   useEffect(() => {
+    let isMounted = true; // Megakadályozza a dupla logolást Strict Mode-ban
     const fetchAirports = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'Airports'));
@@ -38,19 +43,37 @@ export default function Airports() {
           id: doc.id,
           ...doc.data(),
         }));
-        setAirports(airportList);
-        // Véletlenszerűen kiválaszt egy repülőteret a kvízhez
-        if (airportList.length > 0) {
-          const shuffled = shuffleArray(airportList);
-          setCurrentQuestion(shuffled[0]);
+        if (isMounted) {
+          // Konzolra írás: minden repülőtér adatai
+          console.log('Betöltött repülőterek:');
+          airportList.forEach(airport => {
+            console.log(`ICAO Code: ${airport['ICAO Code']}, Airport: ${airport.Airport}`);
+          });
+          setAirports(airportList);
+          // Kevert kérdéslista inicializálása
+          if (airportList.length > 0) {
+            const shuffled = shuffleArray(airportList);
+            setShuffledQuestions(shuffled);
+            setCurrentQuestion(shuffled[0]);
+            setCurrentQuestionIndex(1); // Kezdeti kérdés sorszáma
+          } else {
+            console.warn('Nincsenek repülőterek az adatbázisban.');
+            setError('Nincsenek repülőterek az adatbázisban.');
+          }
+          setLoading(false);
         }
-        setLoading(false);
       } catch (err) {
-        setError('Nem sikerült betölteni a repülőtereket: ' + err.message);
-        setLoading(false);
+        if (isMounted) {
+          console.error('Hiba a repülőterek betöltésekor:', err);
+          setError('Nem sikerült betölteni a repülőtereket: ' + err.message);
+          setLoading(false);
+        }
       }
     };
     fetchAirports();
+    return () => {
+      isMounted = false; // Cleanup Strict Mode-hoz
+    };
   }, []);
 
   // MapTiler térkép inicializálása
@@ -85,27 +108,42 @@ export default function Airports() {
         markerElement.style.border = '2px solid white';
         markerElement.style.cursor = 'pointer';
 
-        new Marker({ element: markerElement })
+        const marker = new Marker({ element: markerElement })
           .setLngLat([parseFloat(Long), parseFloat(Lat)])
           .setPopup(popup)
-          .addTo(map.current)
-          .getElement()
-          .addEventListener('click', () => {
-            // Ellenőrzi, hogy a kiválasztott marker helyes-e
-            if (currentQuestion && icaoCode === currentQuestion['ICAO Code']) {
-              // Zoom animáció a helyes markerre
-              map.current.flyTo({
-                center: [parseFloat(Long), parseFloat(Lat)],
-                zoom: zoomLevel,
-                duration: 1000, // Animáció időtartama (ms)
-              });
-              // Kérdés váltás az animáció befejezése után
-              map.current.once('moveend', () => {
-                const shuffled = shuffleArray(airports);
-                setCurrentQuestion(shuffled[0]);
-              });
-            }
-          });
+          .addTo(map.current);
+
+        // Marker tárolása a ref-ben az ICAO Code alapján
+        markers.current[icaoCode] = { marker, element: markerElement };
+
+        marker.getElement().addEventListener('click', () => {
+          // Ellenőrzi, hogy a kiválasztott marker helyes-e
+          if (currentQuestion && icaoCode === currentQuestion['ICAO Code']) {
+            // Marker színének megváltoztatása zöldre
+            markerElement.style.backgroundColor = 'green';
+            // Zoom animáció a helyes markerre
+            map.current.flyTo({
+              center: [parseFloat(Long), parseFloat(Lat)],
+              zoom: zoomLevel,
+              duration: 2000, // Animáció időtartama (ms)
+            });
+            // Kérdés váltás az animáció befejezése után
+            map.current.once('moveend', () => {
+              // Következő kérdés kiválasztása
+              const nextIndex = currentQuestionIndex;
+              if (nextIndex < shuffledQuestions.length) {
+                setCurrentQuestion(shuffledQuestions[nextIndex]);
+                setCurrentQuestionIndex(prev => prev + 1);
+              } else {
+                // Ha vége a listának, újrakeverés
+                const newShuffled = shuffleArray(airports);
+                setShuffledQuestions(newShuffled);
+                setCurrentQuestion(newShuffled[0]);
+                setCurrentQuestionIndex(1);
+              }
+            });
+          }
+        });
       }
     });
 
@@ -115,7 +153,7 @@ export default function Airports() {
         map.current.remove();
       }
     };
-  }, [airports]); // currentQuestion eltávolítva a függőségi listáról
+  }, [airports]);
 
   // Válasz ellenőrzése az input mezőből
   const handleCheckAnswer = (e) => {
@@ -128,17 +166,39 @@ export default function Airports() {
         airport => airport['ICAO Code'] === currentQuestion['ICAO Code']
       );
       if (correctAirport && correctAirport.Lat && correctAirport.Long) {
+        // Marker színének megváltoztatása zöldre
+        const markerElement = markers.current[correctAirport['ICAO Code']]?.element;
+        if (markerElement) {
+          markerElement.style.backgroundColor = 'green';
+        }
         map.current.flyTo({
           center: [parseFloat(correctAirport.Long), parseFloat(correctAirport.Lat)],
           zoom: zoomLevel,
-          duration: 2000, // Animáció időtartama (ms)
+          duration: 1000, // Animáció időtartama (ms)
         });
         // Kérdés váltás az animáció befejezése után
         map.current.once('moveend', () => {
-          const shuffled = shuffleArray(airports);
-          setCurrentQuestion(shuffled[0]);
+          // Következő kérdés kiválasztása
+          const nextIndex = currentQuestionIndex;
+          if (nextIndex < shuffledQuestions.length) {
+            setCurrentQuestion(shuffledQuestions[nextIndex]);
+            setCurrentQuestionIndex(prev => prev + 1);
+          } else {
+            // Ha vége a listának, újrakeverés és markerek visszaállítása pirosra
+            Object.values(markers.current).forEach(({ element }) => {
+              element.style.backgroundColor = 'red';
+            });
+            const newShuffled = shuffleArray(airports);
+            setShuffledQuestions(newShuffled);
+            setCurrentQuestion(newShuffled[0]);
+            setCurrentQuestionIndex(1);
+            setErrorCount(0); // Hibaszámláló visszaállítása
+          }
         });
       }
+    } else {
+      // Helytelen válasz esetén növeljük a hibaszámlálót
+      setErrorCount(prev => prev + 1);
     }
     // Mindig töröljük az input mezőt
     setUserAnswer('');
@@ -186,10 +246,24 @@ export default function Airports() {
             </form>
           </div>
         )}
-        <div
-          ref={mapContainer}
-          className="w-full h-[800px] rounded-lg shadow"
-        ></div>
+        <div className="relative w-full h-[800px] rounded-lg shadow">
+          <div
+            ref={mapContainer}
+            className="w-full h-full"
+          ></div>
+          {/* Errors számláló a bal alsó sarokban */}
+          <div className="absolute bottom-4 left-4 bg-white p-2 rounded-lg shadow z-10">
+            <p className="text-lg font-bold text-red-600">
+              Hibák: {errorCount}
+            </p>
+          </div>
+          {/* Kérdés számláló a jobb alsó sarokban */}
+          <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow z-10">
+            <p className="text-lg font-bold text-blue-600">
+              {currentQuestionIndex}/{airports.length}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
