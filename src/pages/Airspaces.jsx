@@ -13,6 +13,7 @@ export default function Airports() {
   const [userAnswer, setUserAnswer] = useState('');
   const [errorCount, setErrorCount] = useState(0); // Helytelen válaszok számláló
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0); // Jelenlegi kérdés sorszáma
+  const [isReversed, setIsReversed] = useState(false); // Kérdés sorrend váltása
   const mapContainer = useRef(null);
   const map = useRef(null);
   const markers = useRef({}); // Ref a markerek tárolására
@@ -23,6 +24,8 @@ export default function Airports() {
   // Zoom szint a helyes válasz utáni animációhoz (állítható)
   const zoomLevel = 5; // Alapértelmezett zoom szint, módosítható
 
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   // Fisher-Yates shuffle algoritmus
   const shuffleArray = (array) => {
     const newArray = [...array];
@@ -32,6 +35,11 @@ export default function Airports() {
     }
     return newArray;
   };
+
+    // Kérdés sorrend váltása
+    const toggleQuestionOrder = () => {
+      setIsReversed(prev => !prev);
+    };
 
   // Repülőterek lekérése Firestore-ból
   useEffect(() => {
@@ -44,11 +52,6 @@ export default function Airports() {
           ...doc.data(),
         }));
         if (isMounted) {
-          // Konzolra írás: minden repülőtér adatai
-          console.log('Betöltött repülőterek:');
-          airportList.forEach(airport => {
-            console.log(`ICAO Code: ${airport['ICAO Code']}, Airport: ${airport.Airport}`);
-          });
           setAirports(airportList);
           // Kevert kérdéslista inicializálása
           if (airportList.length > 0) {
@@ -123,7 +126,10 @@ export default function Airports() {
             markerElement.style.backgroundColor = 'green';
             // Zoom animáció a helyes markerre
             map.current.flyTo({
-              center: [parseFloat(Long), parseFloat(Lat)],
+              center: [
+                parseFloat(Long),
+                isMobile ? parseFloat(Lat) - 2 : parseFloat(Lat), // Mobil esetén 1 fokkal délebbre
+              ],
               zoom: zoomLevel,
               duration: 2000, // Animáció időtartama (ms)
             });
@@ -159,7 +165,9 @@ export default function Airports() {
   const handleCheckAnswer = (e) => {
     e.preventDefault();
     const userAnswerCleaned = userAnswer.trim().toLowerCase();
-    const correctAnswerCleaned = currentQuestion?.Airport.toLowerCase();
+    const correctAnswerCleaned = isReversed
+      ? currentQuestion?.['ICAO Code'].toLowerCase()
+      : currentQuestion?.Airport.toLowerCase();
     if (userAnswerCleaned === correctAnswerCleaned) {
       // Helyes válasz esetén zoom a megfelelő markerre
       const correctAirport = airports.find(
@@ -172,7 +180,10 @@ export default function Airports() {
           markerElement.style.backgroundColor = 'green';
         }
         map.current.flyTo({
-          center: [parseFloat(correctAirport.Long), parseFloat(correctAirport.Lat)],
+          center: [
+            parseFloat(correctAirport.Long),
+            isMobile ? parseFloat(correctAirport.Lat) - 2 : parseFloat(correctAirport.Lat), // Mobil esetén 1 fokkal délebbre
+          ],
           zoom: zoomLevel,
           duration: 2000, // Animáció időtartama (ms)
         });
@@ -224,16 +235,36 @@ export default function Airports() {
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
       <div className="relative w-full max-w-7xl p-4">
         {currentQuestion && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow z-10 flex flex-col items-center gap-2">
+          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow z-10 flex flex-col items-center gap-2">
+            <button
+            onClick={toggleQuestionOrder}
+            className="absolute top-4 left-4 bg-white p-2 rounded-lg shadow z-10 hover:bg-gray-100 transition-colors"
+            title="Kérdés sorrend váltása"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-blue-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
             <p className="text-lg font-bold text-center">
-              Keresd meg a térképen: {currentQuestion['ICAO Code']}
+              {isReversed ? currentQuestion.Airport : currentQuestion['ICAO Code']}
             </p>
             <form onSubmit={handleCheckAnswer} className="flex gap-2">
               <input
                 type="text"
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
-                placeholder="Írd be a repülőtér nevét"
+                placeholder= {isReversed ? 'Írd be az ICAO kódot!' : 'Írd be a repülőtér nevét!'}
                 className="p-2 border rounded"
                 autoFocus
               />
