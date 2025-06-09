@@ -174,7 +174,7 @@ export default function Airports() {
         map.current.flyTo({
           center: [parseFloat(correctAirport.Long), parseFloat(correctAirport.Lat)],
           zoom: zoomLevel,
-          duration: 1000, // Animáció időtartama (ms)
+          duration: 2000, // Animáció időtartama (ms)
         });
         // Kérdés váltás az animáció befejezése után
         map.current.once('moveend', () => {
