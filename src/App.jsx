@@ -1,5 +1,5 @@
 import { Routes, Route, Link } from 'react-router-dom';
-import Airspaces from './pages/Airspaces';
+import Airports from './pages/Airports';
 import Aircrafts from './pages/Aircrafts';
 import Callsigns from './pages/callsigns';
 import Constraints from './pages/Constraints';
@@ -7,7 +7,7 @@ import ExtPoints from './pages/ExtPoints';
 import IntPoints from './pages/IntPoints';
 import Dashboard from './pages/Dashboard';
 import DashboardAircrafts from './pages/DashboardAircrafts';
-import DashboardAirspaces from './pages/DashboardAirspaces';
+import DashboardAirports from './pages/DashboardAirports';
 import DashboardCallsigns from './pages/DashboardCallsigns';
 import DashboardConstraints from './pages/DashboardConstraints';
 import DashboardExtPoints from './pages/DashboardExtPoints';
@@ -25,8 +25,8 @@ function App() {
             <div className="container mx-auto p-4">
               <h1 className="text-3xl font-bold text-center mb-8 text-blue-600">ATCO Training</h1>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Link to="/airspaces" className="p-6 bg-white rounded-lg shadow hover:bg-gray-50">
-                  <h2 className="text-xl font-semibold text-center">Airspaces</h2>
+                <Link to="/Airports" className="p-6 bg-white rounded-lg shadow hover:bg-gray-50">
+                  <h2 className="text-xl font-semibold text-center">Airports</h2>
                 </Link>
                 <Link to="/aircrafts" className="p-6 bg-white rounded-lg shadow hover:bg-gray-50">
                   <h2 className="text-xl font-semibold text-center">Aircrafts</h2>
@@ -50,7 +50,7 @@ function App() {
             </div>
           }
         />
-        <Route path="/airspaces" element={<Airspaces />} />
+        <Route path="/Airports" element={<Airports />} />
         <Route path="/aircrafts" element={<Aircrafts />} />
         <Route path="/callsigns" element={<Callsigns />} />
         <Route path="/constraints" element={<Constraints />} />
@@ -58,7 +58,7 @@ function App() {
         <Route path="/int_points" element={<IntPoints />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/aircrafts" element={<DashboardAircrafts />} />
-        <Route path="/dashboard/airspaces" element={<DashboardAirspaces />} />
+        <Route path="/dashboard/Airports" element={<DashboardAirports />} />
         <Route path="/dashboard/callsigns" element={<DashboardCallsigns />} />
         <Route path="/dashboard/constraints" element={<DashboardConstraints />} />
         <Route path="/dashboard/ext_points" element={<DashboardExtPoints />} />
