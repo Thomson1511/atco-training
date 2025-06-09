@@ -9,11 +9,15 @@ export default function Airports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [userAnswer, setUserAnswer] = useState('');
   const mapContainer = useRef(null);
   const map = useRef(null);
 
   // MapTiler API kulcs
   const mapTilerKey = 'Tx0tJslnlndsHe3hs95w';
+
+  // Zoom szint a helyes válasz utáni animációhoz (állítható)
+  const zoomLevel = 5; // Alapértelmezett zoom szint, módosítható
 
   // Fisher-Yates shuffle algoritmus
   const shuffleArray = (array) => {
@@ -89,12 +93,17 @@ export default function Airports() {
           .addEventListener('click', () => {
             // Ellenőrzi, hogy a kiválasztott marker helyes-e
             if (currentQuestion && icaoCode === currentQuestion['ICAO Code']) {
-              alert('Helyes válasz!');
-              // Új kérdés kiválasztása
-              const shuffled = shuffleArray(airports);
-              setCurrentQuestion(shuffled[0]);
-            } else {
-              alert('Helytelen válasz! Próbáld újra.');
+              // Zoom animáció a helyes markerre
+              map.current.flyTo({
+                center: [parseFloat(Long), parseFloat(Lat)],
+                zoom: zoomLevel,
+                duration: 1000, // Animáció időtartama (ms)
+              });
+              // Kérdés váltás az animáció befejezése után
+              map.current.once('moveend', () => {
+                const shuffled = shuffleArray(airports);
+                setCurrentQuestion(shuffled[0]);
+              });
             }
           });
       }
@@ -106,7 +115,34 @@ export default function Airports() {
         map.current.remove();
       }
     };
-  }, [airports, currentQuestion]);
+  }, [airports]); // currentQuestion eltávolítva a függőségi listáról
+
+  // Válasz ellenőrzése az input mezőből
+  const handleCheckAnswer = (e) => {
+    e.preventDefault();
+    const userAnswerCleaned = userAnswer.trim().toLowerCase();
+    const correctAnswerCleaned = currentQuestion?.Airport.toLowerCase();
+    if (userAnswerCleaned === correctAnswerCleaned) {
+      // Helyes válasz esetén zoom a megfelelő markerre
+      const correctAirport = airports.find(
+        airport => airport['ICAO Code'] === currentQuestion['ICAO Code']
+      );
+      if (correctAirport && correctAirport.Lat && correctAirport.Long) {
+        map.current.flyTo({
+          center: [parseFloat(correctAirport.Long), parseFloat(correctAirport.Lat)],
+          zoom: zoomLevel,
+          duration: 2000, // Animáció időtartama (ms)
+        });
+        // Kérdés váltás az animáció befejezése után
+        map.current.once('moveend', () => {
+          const shuffled = shuffleArray(airports);
+          setCurrentQuestion(shuffled[0]);
+        });
+      }
+    }
+    // Mindig töröljük az input mezőt
+    setUserAnswer('');
+  };
 
   if (loading) {
     return (
@@ -126,12 +162,28 @@ export default function Airports() {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="relative w-full max-w-5xl p-4">
+      <div className="relative w-full max-w-7xl p-4">
         {currentQuestion && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow z-10">
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow z-10 flex flex-col items-center gap-2">
             <p className="text-lg font-bold text-center">
               Keresd meg a térképen: {currentQuestion['ICAO Code']}
             </p>
+            <form onSubmit={handleCheckAnswer} className="flex gap-2">
+              <input
+                type="text"
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                placeholder="Írd be a repülőtér nevét"
+                className="p-2 border rounded"
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Ellenőrzés
+              </button>
+            </form>
           </div>
         )}
         <div
