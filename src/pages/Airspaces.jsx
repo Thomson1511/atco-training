@@ -238,7 +238,7 @@ export default function Airports() {
           <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow z-10 flex flex-col items-center gap-2">
             <button
             onClick={toggleQuestionOrder}
-            className="absolute top-4 left-4 bg-white p-2 rounded-lg shadow z-10 hover:bg-gray-100 transition-colors"
+            className="absolute top-2 left-2 bg-white p-2 rounded-lg shadow z-10 hover:bg-gray-300 transition-colors"
             title="Kérdés sorrend váltása"
           >
             <svg
