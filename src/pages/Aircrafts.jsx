@@ -10,8 +10,9 @@ export default function Aircrafts() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [selectedWTC, setSelectedWTC] = useState('');
-  const [maxLevelInput, setMaxLevelInput] = useState(''); // New state for Max Level
-  const [cruisingSpeedInput, setCruisingSpeedInput] = useState(''); // New state for Cruising Speed
+  const [maxLevelInput, setMaxLevelInput] = useState('');
+  const [cruisingSpeedInput, setCruisingSpeedInput] = useState('');
+  const [isExtraFieldsEnabled, setIsExtraFieldsEnabled] = useState(false); // New state for optional fields
   const [errors, setErrors] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,46 +60,49 @@ export default function Aircrafts() {
     setShuffledAircrafts(shuffleArray(aircrafts));
   };
 
-  // Handle next question
-  const handleNext = (e) => {
-    e.preventDefault();
-    const currentAircraft = shuffledAircrafts[currentIndex];
-    // Normalize inputs for comparison
-    const userAnswerCleaned = userAnswer.trim().replace(/\s/g, '').toLowerCase();
-    const correctAnswerCleaned = isIcaoQuestion
-      ? currentAircraft.Name.replace(/\s/g, '').toLowerCase()
-      : currentAircraft['ICAO Code'].replace(/\s/g, '').toLowerCase();
-    const correctWTCCleaned = currentAircraft.WTC.trim().toUpperCase();
-    const correctMaxLevel = String(currentAircraft['Max Level']).trim();
-    const correctCruisingSpeed = String(currentAircraft['Cruising Speed']).trim();
+    // Handle next question
+    const handleNext = (e) => {
+      e.preventDefault();
+      const currentAircraft = shuffledAircrafts[currentIndex];
+      // Normalize inputs for comparison
+      const userAnswerCleaned = userAnswer.trim().replace(/\s/g, '').toLowerCase();
+      const correctAnswerCleaned = isIcaoQuestion
+          ? currentAircraft.Name.replace(/\s/g, '').toLowerCase()
+          : currentAircraft['ICAO Code'].replace(/\s/g, '').toLowerCase();
+      const correctWTCCleaned = currentAircraft.WTC.trim().toUpperCase();
 
-    if (
-      userAnswerCleaned === correctAnswerCleaned &&
-      selectedWTC === correctWTCCleaned &&
-      maxLevelInput.trim() === correctMaxLevel &&
-      cruisingSpeedInput.trim() === correctCruisingSpeed
-    ) {
-      // All answers correct
-      if (currentIndex + 1 < shuffledAircrafts.length) {
-        setCurrentIndex(currentIndex + 1);
-        setUserAnswer('');
-        setSelectedWTC('');
-        setMaxLevelInput(''); // Reset Max Level
-        setCruisingSpeedInput(''); // Reset Cruising Speed
-      } else {
-        // End of quiz, reshuffle and reset
-        setShuffledAircrafts(shuffleArray(aircrafts));
-        setCurrentIndex(0);
-        setErrors(0);
-        setUserAnswer('');
-        setSelectedWTC('');
-        setMaxLevelInput(''); // Reset Max Level
-        setCruisingSpeedInput(''); // Reset Cruising Speed
+      let isCorrect = userAnswerCleaned === correctAnswerCleaned && selectedWTC === correctWTCCleaned;
+
+      if (isExtraFieldsEnabled) {
+          const correctMaxLevel = String(currentAircraft['Max Level']).trim();
+          const correctCruisingSpeed = String(currentAircraft['Cruising Speed']).trim();
+          isCorrect = isCorrect &&
+              maxLevelInput.trim() === correctMaxLevel &&
+              cruisingSpeedInput.trim() === correctCruisingSpeed;
       }
-    } else {
-      // Incorrect answer
-      setErrors(errors + 1);
-    }
+
+      if (isCorrect) {
+          // All required answers correct
+          if (currentIndex + 1 < shuffledAircrafts.length) {
+              setCurrentIndex(currentIndex + 1);
+              setUserAnswer('');
+              setSelectedWTC('');
+              setMaxLevelInput('');
+              setCruisingSpeedInput('');
+          } else {
+              // End of quiz, reshuffle and reset
+              setShuffledAircrafts(shuffleArray(aircrafts));
+              setCurrentIndex(0);
+              setErrors(0);
+              setUserAnswer('');
+              setSelectedWTC('');
+              setMaxLevelInput('');
+              setCruisingSpeedInput('');
+          }
+      } else {
+          // Incorrect answer
+          setErrors(errors + 1);
+      }
   };
 
   if (loading) {
@@ -131,6 +135,12 @@ export default function Aircrafts() {
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
       <div className="bg-white p-6 rounded-lg shadow max-w-md w-full flex flex-col gap-4 relative">
+        <input
+          type="checkbox"
+          checked={isExtraFieldsEnabled}
+          onChange={(e) => setIsExtraFieldsEnabled(e.target.checked)}
+          className="absolute top-2 left-2 h-5 w-5"
+        />
         <button
           onClick={handleToggleQuestion}
           title="Toggle Question Type"
@@ -173,14 +183,16 @@ export default function Aircrafts() {
               value={maxLevelInput}
               onChange={(e) => setMaxLevelInput(e.target.value)}
               placeholder="Enter Max Level"
-              className="p-2 border rounded flex-1"
+              className={`p-2 border rounded flex-1 ${isExtraFieldsEnabled ? '' : 'bg-gray-200'}`}
+              disabled={!isExtraFieldsEnabled}
             />
             <input
               type="text"
               value={cruisingSpeedInput}
               onChange={(e) => setCruisingSpeedInput(e.target.value)}
               placeholder="Enter Cruising Speed"
-              className="p-2 border rounded flex-1"
+              className={`p-2 border rounded flex-1 ${isExtraFieldsEnabled ? '' : 'bg-gray-200'}`}
+              disabled={!isExtraFieldsEnabled}
             />
           </div>
           <button
