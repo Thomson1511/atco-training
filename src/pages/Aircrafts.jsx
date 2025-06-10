@@ -9,6 +9,7 @@ export default function Aircrafts() {
   const [shuffledAircrafts, setShuffledAircrafts] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
+  const [selectedWTC, setSelectedWTC] = useState(''); // New state for WTC dropdown
   const [errors, setErrors] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,7 +20,7 @@ export default function Aircrafts() {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      [newArray[i], [newArray[j]] = [newArray[j]], newArray[i]];
     }
     return newArray;
   };
@@ -48,6 +49,7 @@ export default function Aircrafts() {
   const handleToggleQuestion = () => {
     setIsIcaoQuestion(!isIcaoQuestion);
     setUserAnswer('');
+    setSelectedWTC(''); // Reset WTC selection
     setCurrentIndex(0);
     setErrors(0);
     setShuffledAircrafts(shuffleArray(aircrafts)); // Reshuffle the list
@@ -62,21 +64,24 @@ export default function Aircrafts() {
     const correctAnswerCleaned = isIcaoQuestion
       ? currentAircraft.Name.replace(/\s/g, '').toLowerCase()
       : currentAircraft['ICAO Code'].replace(/\s/g, '').toLowerCase();
+    const correctWTCCleaned = currentAircraft.WTC.trim().toUpperCase();
 
-    if (userAnswerCleaned === correctAnswerCleaned) {
-      // Correct answer
+    if (userAnswerCleaned === correctAnswerCleaned && selectedWTC === correctWTCCleaned) {
+      // Correct answer and WTC
       if (currentIndex + 1 < shuffledAircrafts.length) {
         setCurrentIndex(currentIndex + 1);
         setUserAnswer('');
+        setSelectedWTC(''); // Reset WTC selection
       } else {
         // End of quiz, reshuffle and reset
         setShuffledAircrafts(shuffleArray(aircrafts));
         setCurrentIndex(0);
         setErrors(0);
         setUserAnswer('');
+        setSelectedWTC(''); // Reset WTC selection
       }
     } else {
-      // Incorrect answer
+      // Incorrect answer or WTC
       setErrors(errors + 1);
     }
   };
@@ -126,14 +131,26 @@ export default function Aircrafts() {
           </p>
         </div>
         <form onSubmit={handleNext} className="flex flex-col gap-4">
-          <input
-            type="text"
-            value={userAnswer}
-            onChange={(e) => setUserAnswer(e.target.value)}
-            placeholder={isIcaoQuestion ? 'Enter Aircraft Name' : 'Enter ICAO Code'}
-            className="p-2 border rounded"
-            autoFocus
-          />
+          <div className="flex flex-row gap-2">
+            <input
+              type="text"
+              value={userAnswer}
+              onChange={(e) => setUserAnswer(e.target.value)}
+              placeholder={isIcaoQuestion ? 'Enter Aircraft Name' : 'Enter ICAO Code'}
+              className="p-2 border rounded flex-grow basis-4/5"
+            />
+            <select
+              value={selectedWTC}
+              onChange={(e) => setSelectedWTC(e.target.value)}
+              className="p-2 border rounded basis-1/5"
+            >
+              <option value="" disabled>WTC</option>
+              <option value="L">L</option>
+              <option value="M">M</option>
+              <option value="H">H</option>
+              <option value="J">J</option>
+            </select>
+          </div>
           <button
             type="submit"
             className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
