@@ -9,18 +9,20 @@ export default function Aircrafts() {
   const [shuffledAircrafts, setShuffledAircrafts] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
-  const [selectedWTC, setSelectedWTC] = useState(''); // New state for WTC dropdown
+  const [selectedWTC, setSelectedWTC] = useState('');
+  const [maxLevelInput, setMaxLevelInput] = useState(''); // New state for Max Level
+  const [cruisingSpeedInput, setCruisingSpeedInput] = useState(''); // New state for Cruising Speed
   const [errors, setErrors] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isIcaoQuestion, setIsIcaoQuestion] = useState(true); // State to toggle question type
+  const [isIcaoQuestion, setIsIcaoQuestion] = useState(true);
 
   // Fisher-Yates shuffle algorithm
   const shuffleArray = (array) => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], [newArray[j]] = [newArray[j]], newArray[i]];
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
     }
     return newArray;
   };
@@ -49,39 +51,52 @@ export default function Aircrafts() {
   const handleToggleQuestion = () => {
     setIsIcaoQuestion(!isIcaoQuestion);
     setUserAnswer('');
-    setSelectedWTC(''); // Reset WTC selection
+    setSelectedWTC('');
+    setMaxLevelInput(''); // Reset Max Level
+    setCruisingSpeedInput(''); // Reset Cruising Speed
     setCurrentIndex(0);
     setErrors(0);
-    setShuffledAircrafts(shuffleArray(aircrafts)); // Reshuffle the list
+    setShuffledAircrafts(shuffleArray(aircrafts));
   };
 
   // Handle next question
   const handleNext = (e) => {
     e.preventDefault();
     const currentAircraft = shuffledAircrafts[currentIndex];
-    // Remove spaces and normalize case for comparison
+    // Normalize inputs for comparison
     const userAnswerCleaned = userAnswer.trim().replace(/\s/g, '').toLowerCase();
     const correctAnswerCleaned = isIcaoQuestion
       ? currentAircraft.Name.replace(/\s/g, '').toLowerCase()
       : currentAircraft['ICAO Code'].replace(/\s/g, '').toLowerCase();
     const correctWTCCleaned = currentAircraft.WTC.trim().toUpperCase();
+    const correctMaxLevel = String(currentAircraft['Max Level']).trim();
+    const correctCruisingSpeed = String(currentAircraft['Cruising Speed']).trim();
 
-    if (userAnswerCleaned === correctAnswerCleaned && selectedWTC === correctWTCCleaned) {
-      // Correct answer and WTC
+    if (
+      userAnswerCleaned === correctAnswerCleaned &&
+      selectedWTC === correctWTCCleaned &&
+      maxLevelInput.trim() === correctMaxLevel &&
+      cruisingSpeedInput.trim() === correctCruisingSpeed
+    ) {
+      // All answers correct
       if (currentIndex + 1 < shuffledAircrafts.length) {
         setCurrentIndex(currentIndex + 1);
         setUserAnswer('');
-        setSelectedWTC(''); // Reset WTC selection
+        setSelectedWTC('');
+        setMaxLevelInput(''); // Reset Max Level
+        setCruisingSpeedInput(''); // Reset Cruising Speed
       } else {
         // End of quiz, reshuffle and reset
         setShuffledAircrafts(shuffleArray(aircrafts));
         setCurrentIndex(0);
         setErrors(0);
         setUserAnswer('');
-        setSelectedWTC(''); // Reset WTC selection
+        setSelectedWTC('');
+        setMaxLevelInput(''); // Reset Max Level
+        setCruisingSpeedInput(''); // Reset Cruising Speed
       }
     } else {
-      // Incorrect answer or WTC
+      // Incorrect answer
       setErrors(errors + 1);
     }
   };
@@ -138,18 +153,35 @@ export default function Aircrafts() {
               onChange={(e) => setUserAnswer(e.target.value)}
               placeholder={isIcaoQuestion ? 'Enter Aircraft Name' : 'Enter ICAO Code'}
               className="p-2 border rounded flex-grow basis-4/5"
+              autoFocus
             />
             <select
               value={selectedWTC}
               onChange={(e) => setSelectedWTC(e.target.value)}
               className="p-2 border rounded basis-1/5"
             >
-              <option value="" disabled>WTC</option>
+              <option value="" disabled>Select WTC</option>
               <option value="L">L</option>
               <option value="M">M</option>
               <option value="H">H</option>
               <option value="J">J</option>
             </select>
+          </div>
+          <div className="flex flex-row gap-2">
+            <input
+              type="text"
+              value={maxLevelInput}
+              onChange={(e) => setMaxLevelInput(e.target.value)}
+              placeholder="Enter Max Level"
+              className="p-2 border rounded flex-1"
+            />
+            <input
+              type="text"
+              value={cruisingSpeedInput}
+              onChange={(e) => setCruisingSpeedInput(e.target.value)}
+              placeholder="Enter Cruising Speed"
+              className="p-2 border rounded flex-1"
+            />
           </div>
           <button
             type="submit"
