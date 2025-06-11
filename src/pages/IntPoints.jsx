@@ -60,6 +60,35 @@ export default function IntPoints() {
     return degrees + minutes / 60 + seconds / 3600;
   };
 
+  // Útvonal hozzáadása a térképhez
+  const addRouteToMap = (map, sourceId, coordinates, color = '#34bdeb') => {
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates,
+        },
+      },
+    });
+
+    map.addLayer({
+      id: sourceId,
+      type: 'line',
+      source: sourceId,
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': color,
+        'line-width': 4,
+      },
+    });
+  };
+
   // Internal Points lekérése Firestore-ból
   useEffect(() => {
     let isMounted = true;
@@ -112,7 +141,7 @@ export default function IntPoints() {
 
     // GeoJSON vonal hozzáadása DMS koordinátákkal
     map.current.on('load', () => {
-      const coordinates = [
+      const TMAcoordinates = [
         [dmsToDecimal("20° 03' 25\" E"), dmsToDecimal("48° 10' 29\" N")], 
         [dmsToDecimal("20° 13' 59\" E"), dmsToDecimal("48° 06' 05\" N")],
         [dmsToDecimal("20° 13' 58\" E"), dmsToDecimal("47° 32' 00\" N")],
@@ -124,37 +153,28 @@ export default function IntPoints() {
         [dmsToDecimal("18° 22' 12\" E"), dmsToDecimal("47° 02' 20\" N")],
         [dmsToDecimal("18° 17' 44\" E"), dmsToDecimal("47° 20' 11\" N")],
         [dmsToDecimal("18° 15' 30\" E"), dmsToDecimal("47° 44' 19\" N")],
-
-        /* tma7
-        480519N 0192017E
-        */
       ];
 
-      map.current.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: coordinates,
-          },
-        },
-      });
+      const lhbpctrCoordinates = [
+        [dmsToDecimal("19° 05' 23\" E"), dmsToDecimal("47° 35' 46\" N")], 
+        [dmsToDecimal("19° 08' 56\" E"), dmsToDecimal("47° 34' 57\" N")],
+        [dmsToDecimal("19° 19' 30\" E"), dmsToDecimal("47° 32' 30\" N")],
 
-      map.current.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#34bdeb',
-          'line-width': 4,
-        },
-      });
+        [dmsToDecimal("19° 34' 00\" E"), dmsToDecimal("47° 24' 00\" N")],
+        [dmsToDecimal("19° 32' 47\" E"), dmsToDecimal("47° 23' 07\" N")],
+        [dmsToDecimal("19° 23' 47\" E"), dmsToDecimal("47° 16' 32\" N")],
+        [dmsToDecimal("19° 21' 38\" E"), dmsToDecimal("47° 14' 57\" N")],
+        [dmsToDecimal("19° 06' 42\" E"), dmsToDecimal("47° 24' 10\" N")],
+        [dmsToDecimal("19° 06' 19\" E"), dmsToDecimal("47° 26' 13\" N")],
+        [dmsToDecimal("19° 03' 36\" E"), dmsToDecimal("47° 29' 41\" N")],
+        [dmsToDecimal("19° 03' 25\" E"), dmsToDecimal("47° 30' 22\" N")],
+        [dmsToDecimal("19° 03' 21\" E"), dmsToDecimal("47° 30' 38\" N")],
+        [dmsToDecimal("19° 05' 23\" E"), dmsToDecimal("47° 35' 46\" N")],
+      ];
+
+      // Útvonalak hozzáadása a térképhez
+      addRouteToMap(map.current, 'route', TMAcoordinates, '#34bdeb');
+      addRouteToMap(map.current, 'lhbpctr', lhbpctrCoordinates, '#34bdeb');
     });
 
     // Markerek hozzáadása az adatbázis koordinátáival
