@@ -113,9 +113,21 @@ export default function IntPoints() {
     // GeoJSON vonal hozzáadása DMS koordinátákkal
     map.current.on('load', () => {
       const coordinates = [
-        [dmsToDecimal("19° 15' 20\" E"), dmsToDecimal("47° 26' 13\" N")], // é. sz. 47° 26′ 13″, k. h. 19° 15′ 20″
-        [dmsToDecimal("17° 12' 46\" E"), dmsToDecimal("48° 10' 12\" N")], // 48°10′12″N 17°12′46″E
-        [dmsToDecimal("16° 34' 15\" E"), dmsToDecimal("48° 06' 39\" N")], // 48°06′39″N 016°34′15″E
+        [dmsToDecimal("20° 03' 25\" E"), dmsToDecimal("48° 10' 29\" N")], 
+        [dmsToDecimal("20° 13' 59\" E"), dmsToDecimal("48° 06' 05\" N")],
+        [dmsToDecimal("20° 13' 58\" E"), dmsToDecimal("47° 32' 00\" N")],
+        [dmsToDecimal("20° 13' 55\" E"), dmsToDecimal("47° 15' 29\" N")],
+        [dmsToDecimal("20° 13' 53\" E"), dmsToDecimal("47° 09' 13\" N")],
+        [dmsToDecimal("19° 51' 36\" E"), dmsToDecimal("46° 52' 48\" N")],
+        [dmsToDecimal("19° 23' 49\" E"), dmsToDecimal("46° 48' 19\" N")],
+        [dmsToDecimal("19° 00' 31\" E"), dmsToDecimal("46° 53' 37\" N")],
+        [dmsToDecimal("18° 22' 12\" E"), dmsToDecimal("47° 02' 20\" N")],
+        [dmsToDecimal("18° 17' 44\" E"), dmsToDecimal("47° 20' 11\" N")],
+        [dmsToDecimal("18° 15' 30\" E"), dmsToDecimal("47° 44' 19\" N")],
+
+        /* tma7
+        480519N 0192017E
+        */
       ];
 
       map.current.addSource('route', {
