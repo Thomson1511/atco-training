@@ -181,8 +181,59 @@ export default function IntPoints() {
         [dmsToDecimal("19° 05' 23\" E"), dmsToDecimal("47° 35' 46\" N")],
       ];
 
-      addRouteToMap(map.current, 'route', TMAcoordinates, '#34bdeb');
-      addRouteToMap(map.current, 'lhbpctr', lhbpctrCoordinates, '#34bdeb');
+      const LESMO = [
+        [dmsToDecimal("17° 36' 51\" E"), dmsToDecimal("47° 49' 06\" N")],
+        [dmsToDecimal("17° 30' 00\" E"), dmsToDecimal("47° 44' 49\" N")],
+        [dmsToDecimal("17° 29' 18\" E"), dmsToDecimal("47° 35' 59\" N")],
+        [dmsToDecimal("17° 15' 54\" E"), dmsToDecimal("47° 35' 59\" N")],
+        [dmsToDecimal("16° 40' 05\" E"), dmsToDecimal("47° 35' 55\" N")],
+       
+      ];
+
+      const KOSICE = [
+        [dmsToDecimal("21° 49' 01\" E"), dmsToDecimal("48° 20' 00\" N")],//482000N 0214901E 
+        [dmsToDecimal("21° 49' 53\" E"), dmsToDecimal("48° 17' 03\" N")],//481703N 0214953E 
+        [dmsToDecimal("21° 05' 51\" E"), dmsToDecimal("48° 11' 10\" N")],//481110N 0210551E 
+        [dmsToDecimal("20° 23' 46\" E"), dmsToDecimal("48° 23' 46\" N")],//482346N 0202459E ,,
+
+      ];
+
+      //Kecskemét
+
+      //Pápa
+
+      const PAPA = [
+      [dmsToDecimal("17° 15' 54\" E"), dmsToDecimal("47° 35' 59\" N")], 
+      [dmsToDecimal("17° 35' 54\" E"), dmsToDecimal("47° 35' 59\" N")], 
+      [dmsToDecimal("17° 41' 54\" E"), dmsToDecimal("47° 29' 59\" N")], 
+      [dmsToDecimal("17° 50' 15\" E"), dmsToDecimal("47° 29' 59\" N")], 
+      [dmsToDecimal("17° 59' 00\" E"), dmsToDecimal("47° 12' 59\" N")], 
+      [dmsToDecimal("17° 26' 40\" E"), dmsToDecimal("46° 59' 59\" N")], 
+      [dmsToDecimal("17° 16' 54\" E"), dmsToDecimal("47° 02' 29\" N")], 
+      [dmsToDecimal("17° 03' 04\" E"), dmsToDecimal("47° 28' 54\" N")], 
+      [dmsToDecimal("17° 15' 54\" E"), dmsToDecimal("47° 35' 59\" N")],
+      ];
+
+      //Papa ctr 
+
+      const PAPACTR = [
+        [dmsToDecimal("17° 28' 54\" E"), dmsToDecimal("47° 35' 39\" N")], 
+        [dmsToDecimal("17° 42' 54\" E"), dmsToDecimal("47° 10' 29\" N")], 
+        [dmsToDecimal("17° 31' 24\" E"), dmsToDecimal("47° 07' 38\" N")], 
+        [dmsToDecimal("17° 17' 54\" E"), dmsToDecimal("47° 32' 59\" N")], 
+        [dmsToDecimal("17° 28' 54\" E"), dmsToDecimal("47° 35' 39\" N")],
+      ];
+      
+      //Szolnok 
+
+      //
+
+      addRouteToMap(map.current, 'route', TMAcoordinates, '#0a4fa2');
+      addRouteToMap(map.current, 'lhbpctr', lhbpctrCoordinates, '#0a4fa2');
+      addRouteToMap(map.current, 'LesmoArea', LESMO, '#0a4fa2');
+      addRouteToMap(map.current, 'KosiceTMA', KOSICE, '#0a4fa2');
+      addRouteToMap(map.current, 'PapaMTMA', PAPA, '#0a4fa2');
+      addRouteToMap(map.current, 'PapaMCTR', PAPACTR, '#0a4fa2');
     });
 
     // Markerek hozzáadása kattintás eseménnyel
