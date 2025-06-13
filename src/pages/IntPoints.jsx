@@ -12,6 +12,7 @@ export default function IntPoints() {
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [errorCount, setErrorCount] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [correctAnswers, setCorrectAnswers] = useState([]); // Új állapot a helyes válaszokhoz
   const mapContainer = useRef(null);
   const map = useRef(null);
   const markers = useRef({});
@@ -47,15 +48,15 @@ export default function IntPoints() {
     return decimal;
   };
 
-  // Adatbázis formátumú koordináta konvertálása tizedes fokokká (pl. "47.5359" → 47° 53' 59" → tizedes fok)
+  // Adatbázis formátumú koordináta konvertálása tizedes fokokká
   const databaseCoordToDecimal = (coord) => {
     const num = parseFloat(coord);
     if (isNaN(num)) return null;
 
-    const degrees = Math.floor(num); // Fok: egész rész
-    const decimalPart = num - degrees; // Tizedes rész
-    const minutes = Math.floor(decimalPart * 100); // Perc: első két tizedesjegy
-    const seconds = (decimalPart * 100 - minutes) * 100; // Másodperc: további tizedesjegyek
+    const degrees = Math.floor(num);
+    const decimalPart = num - degrees;
+    const minutes = Math.floor(decimalPart * 100);
+    const seconds = (decimalPart * 100 - minutes) * 100;
 
     return degrees + minutes / 60 + seconds / 3600;
   };
@@ -126,7 +127,17 @@ export default function IntPoints() {
     };
   }, []);
 
-  // MapTiler térkép inicializálása és vonal rajzolása
+  // Markerek színének visszaállítása, csak a pirosakat fehérre
+  const resetMarkerColors = () => {
+    Object.values(markers.current).forEach(({ element }) => {
+      const polygon = element.querySelector('polygon');
+      if (polygon && polygon.getAttribute('fill') === 'red') {
+        polygon.setAttribute('fill', 'white');
+      }
+    });
+  };
+
+  // MapTiler térkép inicializálása és markerek hozzáadása
   useEffect(() => {
     if (!mapContainer.current || intPoints.length === 0) return;
 
@@ -135,14 +146,13 @@ export default function IntPoints() {
     map.current = new Map({
       container: mapContainer.current,
       style: 'https://api.maptiler.com/maps/01975acb-95b7-7a6b-beb9-fae86429fd18/style.json?key=Tx0tJslnlndsHe3hs95w',
-      center: [19.6, 47.2], // Módosított középpont
-      zoom: 6.8, // Módosított nagyítás
+      center: [19.6, 47.2],
+      zoom: 6.8,
     });
 
-    // GeoJSON vonal hozzáadása DMS koordinátákkal
     map.current.on('load', () => {
       const TMAcoordinates = [
-        [dmsToDecimal("20° 03' 25\" E"), dmsToDecimal("48° 10' 29\" N")], 
+        [dmsToDecimal("20° 03' 25\" E"), dmsToDecimal("48° 10' 29\" N")],
         [dmsToDecimal("20° 13' 59\" E"), dmsToDecimal("48° 06' 05\" N")],
         [dmsToDecimal("20° 13' 58\" E"), dmsToDecimal("47° 32' 00\" N")],
         [dmsToDecimal("20° 13' 55\" E"), dmsToDecimal("47° 15' 29\" N")],
@@ -156,10 +166,9 @@ export default function IntPoints() {
       ];
 
       const lhbpctrCoordinates = [
-        [dmsToDecimal("19° 05' 23\" E"), dmsToDecimal("47° 35' 46\" N")], 
+        [dmsToDecimal("19° 05' 23\" E"), dmsToDecimal("47° 35' 46\" N")],
         [dmsToDecimal("19° 08' 56\" E"), dmsToDecimal("47° 34' 57\" N")],
         [dmsToDecimal("19° 19' 30\" E"), dmsToDecimal("47° 32' 30\" N")],
-
         [dmsToDecimal("19° 34' 00\" E"), dmsToDecimal("47° 24' 00\" N")],
         [dmsToDecimal("19° 32' 47\" E"), dmsToDecimal("47° 23' 07\" N")],
         [dmsToDecimal("19° 23' 47\" E"), dmsToDecimal("47° 16' 32\" N")],
@@ -172,16 +181,14 @@ export default function IntPoints() {
         [dmsToDecimal("19° 05' 23\" E"), dmsToDecimal("47° 35' 46\" N")],
       ];
 
-      // Útvonalak hozzáadása a térképhez
       addRouteToMap(map.current, 'route', TMAcoordinates, '#34bdeb');
       addRouteToMap(map.current, 'lhbpctr', lhbpctrCoordinates, '#34bdeb');
     });
 
-    // Markerek hozzáadása az adatbázis koordinátáival
+    // Markerek hozzáadása kattintás eseménnyel
     intPoints.forEach(point => {
       const { Name, Lat, Long } = point;
       if (Lat && Long) {
-        // Konvertálás adatbázis formátumból tizedes fokokká
         const latDecimal = databaseCoordToDecimal(Lat);
         const longDecimal = databaseCoordToDecimal(Long);
 
@@ -190,18 +197,17 @@ export default function IntPoints() {
             `<h3>${Name}</h3>`
           );
 
-          // SVG háromszög marker zöld körvonallal és fehér kitöltéssel
           const markerElement = document.createElement('div');
           markerElement.style.width = '20px';
           markerElement.style.height = '20px';
           markerElement.style.cursor = 'pointer';
           markerElement.style.position = 'absolute';
           markerElement.style.transform = 'translate(-50%, -50%)';
-          
-          // SVG elem létrehozása
+          // Ha a pont már helyesen megválaszolt, zöldre állítjuk
+          const initialFill = correctAnswers.includes(Name) ? 'green' : 'white';
           markerElement.innerHTML = `
             <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="10,2 2,18 18,18" fill="white" stroke="green" stroke-width="2" />
+              <polygon points="10,2 2,18 18,18" fill="${initialFill}" stroke="green" stroke-width="2" />
             </svg>
           `;
 
@@ -209,6 +215,40 @@ export default function IntPoints() {
             .setLngLat([longDecimal, latDecimal])
             .setPopup(popup)
             .addTo(map.current);
+
+          // Kattintás esemény a markerhez
+          markerElement.addEventListener('click', () => {
+            const polygon = markerElement.querySelector('polygon');
+            if (currentQuestion && Name === currentQuestion.Name) {
+              // Helyes válasz
+              if (polygon) {
+                polygon.setAttribute('fill', 'green');
+              }
+              // Helyes válasz hozzáadása a tömbhöz
+              setCorrectAnswers(prev => [...new Set([...prev, Name])]);
+              // Összes piros marker visszaállítása fehérre
+              resetMarkerColors();
+              if (currentQuestionIndex < intPoints.length) {
+                setCurrentQuestion(shuffledQuestions[currentQuestionIndex]);
+                setCurrentQuestionIndex(prev => prev + 1);
+              } else {
+                // Kérdéssor vége, újrakeverés
+                const newShuffled = shuffleArray(intPoints);
+                setShuffledQuestions(newShuffled);
+                setCurrentQuestion(newShuffled[0]);
+                setCurrentQuestionIndex(1);
+                setErrorCount(0);
+                setCorrectAnswers([]); // Helyes válaszok törlése újrakezdéskor
+                alert('Gratulálunk, végigértél a kérdéssoron!');
+              }
+            } else {
+              // Helytelen válasz
+              if (polygon) {
+                polygon.setAttribute('fill', 'red');
+              }
+              setErrorCount(prev => prev + 1);
+            }
+          });
 
           markers.current[Name] = { marker, element: markerElement };
         }
@@ -220,7 +260,7 @@ export default function IntPoints() {
         map.current.remove();
       }
     };
-  }, [intPoints]);
+  }, [intPoints, currentQuestion, currentQuestionIndex, shuffledQuestions, correctAnswers]);
 
   if (loading) {
     return (
@@ -246,6 +286,14 @@ export default function IntPoints() {
             ref={mapContainer}
             className="w-full h-full"
           ></div>
+          {/* Kérdés doboz a térkép tetején, középen */}
+          {currentQuestion && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow z-10">
+              <p className="text-lg font-bold text-blue-600">
+                Kérdés: Kattints a(z) <span className="text-green-600">{currentQuestion.Name}</span> pontra!
+              </p>
+            </div>
+          )}
           <div className="absolute bottom-4 left-4 bg-white p-2 rounded-lg shadow z-10">
             <p className="text-lg font-bold text-red-600">
               Hibák: {errorCount}
