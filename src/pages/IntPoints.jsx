@@ -62,7 +62,7 @@ export default function IntPoints() {
   };
 
   // Útvonal hozzáadása a térképhez
-  const addRouteToMap = (map, sourceId, coordinates, color = '#34bdeb') => {
+  const addRouteToMap = (map, sourceId, coordinates, color = '#34bdeb', lineWidth = 4, isDashed = false) => {
     map.addSource(sourceId, {
       type: 'geojson',
       data: {
@@ -85,7 +85,8 @@ export default function IntPoints() {
       },
       paint: {
         'line-color': color,
-        'line-width': 4,
+        'line-width': lineWidth,
+        'line-dasharray': isDashed ? [1, 2] : [1, 0], // [dash, gap] for dashed lines, continuous for solid
       },
     });
   };
@@ -191,16 +192,14 @@ export default function IntPoints() {
       ];
 
       const KOSICE = [
-        [dmsToDecimal("21° 49' 01\" E"), dmsToDecimal("48° 20' 00\" N")],//482000N 0214901E 
-        [dmsToDecimal("21° 49' 53\" E"), dmsToDecimal("48° 17' 03\" N")],//481703N 0214953E 
-        [dmsToDecimal("21° 05' 51\" E"), dmsToDecimal("48° 11' 10\" N")],//481110N 0210551E 
-        [dmsToDecimal("20° 23' 46\" E"), dmsToDecimal("48° 23' 46\" N")],//482346N 0202459E ,,
+        [dmsToDecimal("21° 49' 01\" E"), dmsToDecimal("48° 20' 00\" N")],
+        [dmsToDecimal("21° 49' 53\" E"), dmsToDecimal("48° 17' 03\" N")],
+        [dmsToDecimal("21° 05' 51\" E"), dmsToDecimal("48° 11' 10\" N")],
+        [dmsToDecimal("20° 23' 46\" E"), dmsToDecimal("48° 23' 46\" N")],
 
       ];
 
       //Kecskemét
-
-      //Pápa
 
       const PAPA = [
       [dmsToDecimal("17° 15' 54\" E"), dmsToDecimal("47° 35' 59\" N")], 
@@ -214,8 +213,6 @@ export default function IntPoints() {
       [dmsToDecimal("17° 15' 54\" E"), dmsToDecimal("47° 35' 59\" N")],
       ];
 
-      //Papa ctr 
-
       const PAPACTR = [
         [dmsToDecimal("17° 28' 54\" E"), dmsToDecimal("47° 35' 39\" N")], 
         [dmsToDecimal("17° 42' 54\" E"), dmsToDecimal("47° 10' 29\" N")], 
@@ -224,16 +221,69 @@ export default function IntPoints() {
         [dmsToDecimal("17° 28' 54\" E"), dmsToDecimal("47° 35' 39\" N")],
       ];
       
-      //Szolnok 
+      const Sarmellek = [
+        [dmsToDecimal("16° 49' 12\" E"), dmsToDecimal("46° 52' 11\" N")], 
+        [dmsToDecimal("17° 12' 52\" E"), dmsToDecimal("46° 52' 33\" N")], 
+        [dmsToDecimal("17° 19' 44\" E"), dmsToDecimal("46° 34' 23\" N")], 
+        [dmsToDecimal("17° 17' 50\" E"), dmsToDecimal("46° 28' 47\" N")], 
+        [dmsToDecimal("17° 00' 31\" E"), dmsToDecimal("46° 25' 39\" N")], 
+        [dmsToDecimal("16° 49' 12\" E"), dmsToDecimal("46° 52' 11\" N")],
+      ];
 
-      //
+      const Szeged = [
+        [dmsToDecimal("19° 49' 17\" E"), dmsToDecimal("46° 07' 50\" N")],  
+        [dmsToDecimal("19° 49' 31\" E"), dmsToDecimal("46° 23' 54\" N")],  
+        [dmsToDecimal("19° 59' 50\" E"), dmsToDecimal("46° 32' 50\" N")],  
+        [dmsToDecimal("20° 15' 57\" E"), dmsToDecimal("46° 27' 47\" N")],  
+        [dmsToDecimal("20° 24' 13\" E"), dmsToDecimal("46° 09' 29\" N")], 
+      ];
 
-      addRouteToMap(map.current, 'route', TMAcoordinates, '#0a4fa2');
-      addRouteToMap(map.current, 'lhbpctr', lhbpctrCoordinates, '#0a4fa2');
-      addRouteToMap(map.current, 'LesmoArea', LESMO, '#0a4fa2');
-      addRouteToMap(map.current, 'KosiceTMA', KOSICE, '#0a4fa2');
-      addRouteToMap(map.current, 'PapaMTMA', PAPA, '#0a4fa2');
-      addRouteToMap(map.current, 'PapaMCTR', PAPACTR, '#0a4fa2');
+      const Pecs = [
+        [dmsToDecimal("18° 15' 08\" E"), dmsToDecimal("45° 46' 14\" N")], 
+        [dmsToDecimal("18° 28' 20\" E"), dmsToDecimal("45° 51' 06\" N")],  
+        [dmsToDecimal("18° 21' 54\" E"), dmsToDecimal("46° 13' 04\" N")],  
+        [dmsToDecimal("18° 19' 06\" E"), dmsToDecimal("46° 14' 02\" N")],  
+        [dmsToDecimal("18° 04' 24\" E"), dmsToDecimal("46° 08' 54\" N")], 
+        [dmsToDecimal("17° 59' 50\" E"), dmsToDecimal("45° 53' 47\" N")], 
+        [dmsToDecimal("18° 15' 08\" E"), dmsToDecimal("45° 46' 14\" N")], 
+      ];
+
+      const Nyiregyhaza = [
+        [dmsToDecimal("21° 37' 22\" E"), dmsToDecimal("47° 47' 18\" N")], 
+        [dmsToDecimal("21° 33' 39\" E"), dmsToDecimal("47° 45' 59\" N")],  
+        [dmsToDecimal("21° 22' 10\" E"), dmsToDecimal("47° 57' 48\" N")],  
+        [dmsToDecimal("21° 23' 51\" E"), dmsToDecimal("48° 04' 43\" N")],  
+        [dmsToDecimal("21° 26' 30\" E"), dmsToDecimal("48° 09' 30\" N")], 
+        [dmsToDecimal("21° 33' 00\" E"), dmsToDecimal("48° 12' 20\" N")], 
+        [dmsToDecimal("21° 50' 25\" E"), dmsToDecimal("48° 13' 19\" N")], 
+        [dmsToDecimal("21° 58' 00\" E"), dmsToDecimal("47° 58' 00\" N")], 
+        [dmsToDecimal("21° 46' 00\" E"), dmsToDecimal("47° 46' 30\" N")], 
+        [dmsToDecimal("21° 37' 22\" E"), dmsToDecimal("47° 47' 18\" N")], 
+      ];
+
+      const Debrecen = [
+        [dmsToDecimal("21° 32' 43\" E"), dmsToDecimal("47° 32' 43\" N")],  
+        [dmsToDecimal("21° 33' 39\" E"), dmsToDecimal("47° 45' 59\" N")],  
+        [dmsToDecimal("21° 37' 22\" E"), dmsToDecimal("47° 47' 18\" N")],
+        [dmsToDecimal("21° 50' 09\" E"), dmsToDecimal("47° 41' 27\" N")], 
+        [dmsToDecimal("22° 00' 59\" E"), dmsToDecimal("47° 31' 02\" N")],  
+        [dmsToDecimal("21° 43' 29\" E"), dmsToDecimal("47° 10' 20\" N")],  
+        [dmsToDecimal("21° 26' 11\" E"), dmsToDecimal("47° 11' 54\" N")],  
+        [dmsToDecimal("21° 17' 43\" E"), dmsToDecimal("47° 24' 02\" N")], 
+        [dmsToDecimal("21° 32' 43\" E"), dmsToDecimal("47° 32' 43\" N")], 
+      ];
+
+      addRouteToMap(map.current, 'route', TMAcoordinates, '#0a4fa2', 4, false);
+      addRouteToMap(map.current, 'lhbpctr', lhbpctrCoordinates, '#0a4fa2', 4, false);
+      addRouteToMap(map.current, 'LesmoArea', LESMO, '#0a4fa2', 4, false);
+      addRouteToMap(map.current, 'KosiceTMA', KOSICE, '#0a4fa2', 4, false);
+      addRouteToMap(map.current, 'PapaMTMA', PAPA, '#0a4fa2', 2, false);
+      addRouteToMap(map.current, 'PapaMCTR', PAPACTR, '#0a4fa2', 2, false);
+      addRouteToMap(map.current, 'SarmellekTIZ', Sarmellek, '#0a4fa2', 2, true);
+      addRouteToMap(map.current, 'SzegedTIZ', Szeged, '#0a4fa2', 2, true);
+      addRouteToMap(map.current, 'PecsTIZ', Pecs, '#0a4fa2', 2, true);
+      addRouteToMap(map.current, 'NyiregyhazaTIZ', Nyiregyhaza, '#0a4fa2', 2, true);
+      addRouteToMap(map.current, 'DebrecenTIZ', Debrecen, '#0a4fa2', 2, true);
     });
 
     // Markerek hozzáadása kattintás eseménnyel
