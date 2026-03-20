@@ -17,6 +17,12 @@ export default function Constraints() {
   const [selectedCrossType, setSelectedCrossType] = useState('');
   const [otherValue, setOtherValue] = useState('');
 
+  // Released checkboxok és FL input
+    const [releasedTurn, setReleasedTurn] = useState(false);
+    const [releasedDesc, setReleasedDesc] = useState(false);
+    const [releasedClb, setReleasedClb] = useState(false);
+    const [releasedFL, setReleasedFL] = useState('');
+
   useEffect(() => {
     const q = query(collection(db, 'Constraints'));
 
@@ -44,6 +50,21 @@ export default function Constraints() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Enter') return;
+  
+      // Ha a fókuszban lévő elem egy gomb, akkor ne fussunk bele kétszer
+      if (event.target.tagName === 'BUTTON') return;
+  
+      event.preventDefault();
+      handleNext();
+    };
+  
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, selectedLevelType, levelValue, selectedCrossType, otherValue, shuffledConstraints]);
 
   if (loading) {
     return (
@@ -110,6 +131,30 @@ export default function Constraints() {
       (dbReachFL === 0 && userReachFL === 0) ||
       (dbReachFL !== 0 && userReachFL === dbReachFL);
 
+        // ReleasedTurn ellenőrzés példa
+    if (releasedTurn !== !!currentConstraint.ReleasedTurn) {
+      isCorrect = false;
+    }
+
+    if (releasedDesc !== !!currentConstraint.ReleasedDesc) {
+      isCorrect = false;
+    }
+
+    if (releasedClb !== !!currentConstraint.ReleasedClb) {
+      isCorrect = false;
+    }
+
+    // ReleasedFL ellenőrzés (hasonló logika, mint a ReachFL-nél)
+    const userReleasedFL = releasedFL.trim() !== '' ? Number(releasedFL) : 0;
+    const dbReleasedFL = Number(currentConstraint.ReleasedFL ?? 0);
+
+    if (
+      (dbReleasedFL === 0 && userReleasedFL !== 0) ||
+      (dbReleasedFL !== 0 && userReleasedFL !== dbReleasedFL)
+    ) {
+      isCorrect = false;
+    }
+
     if (!reachFLCorrect) {
       isCorrect = false;
     }
@@ -138,7 +183,7 @@ export default function Constraints() {
       }, 1400);
     } else {
       setFeedback('incorrect');
-      setTimeout(() => setFeedback(null), 3200);
+      setTimeout(() => setFeedback(null), 1600);
     }
   };
 
@@ -147,10 +192,14 @@ export default function Constraints() {
     setLevelValue('');
     setSelectedCrossType('');
     setOtherValue('');
+    setReleasedTurn(false);
+    setReleasedDesc(false);
+    setReleasedClb(false);
+    setReleasedFL('');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 grid grid-rows-5 relative">
+    <div className="h-screen bg-gray-50 grid grid-rows-5 overflow-hidden relative">
 
       {/* 1. sáv – Airports + From | Via | To */}
       <div className="bg-white border-b border-gray-200 overflow-auto">
@@ -158,7 +207,7 @@ export default function Constraints() {
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
               {currentConstraint.Airports?.length > 0
-                ? currentConstraint.Airports.join('  •  ')
+                ? currentConstraint.Airports.join(',  ')
                 : 'Nincs megadva repülőtér'}
             </h1>
           </div>
@@ -244,8 +293,55 @@ export default function Constraints() {
         </div>
       </div>
 
-      {/* 3. sáv – placeholder */}
-      <div className="bg-gray-200 border-b border-gray-200" />
+      {/* 3. sáv – Released for + checkboxok + szám input */}
+      <div className="bg-gray-50 border-b border-gray-200 flex items-center justify-center">
+      <div className="grid grid-cols-2 w-full max-w-5xl">
+        <div className="space-y-4 mb-6">
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={releasedTurn}
+                onChange={(e) => setReleasedTurn(e.target.checked)}
+                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-lg text-gray-700">Released for turn</span>
+            </label>
+
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={releasedDesc}
+                onChange={(e) => setReleasedDesc(e.target.checked)}
+                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-lg text-gray-700">Released for descent</span>
+            </label>
+
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={releasedClb}
+                onChange={(e) => setReleasedClb(e.target.checked)}
+                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-lg text-gray-700">Released for climb</span>
+            </label>
+          </div>
+
+          <div className="flex flex-col items-center justify-center">
+            <label className="text-sm font-medium text-gray-700 mb-2">
+              FL érték
+            </label>
+            <input
+              type="number"
+              value={releasedFL}
+              onChange={(e) => setReleasedFL(e.target.value.replace(/\D/g, ''))}
+              placeholder="pl. 280"
+              className="w-full max-w-xs px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          </div>
+          </div>
+      </div>
 
       {/* 4. sáv – placeholder */}
       <div className="bg-gray-300 border-b border-gray-200" />
