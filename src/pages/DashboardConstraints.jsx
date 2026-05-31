@@ -100,19 +100,25 @@ export default function DashboardConstraints() {
       if (!isSupervisor) return;
   
       try {
-        const finalData = {
-          ...newData,
-          Airports: newData.Airports ? newData.Airports.split(',').map(a => a.trim().toUpperCase()) : [],
-          MainFL: Number(newData.MainFL) || 0,
-          ReachFL: Number(newData.ReachFL) || 0,
-          ReleasedFL: Number(newData.ReleasedFL) || 0,
-          SpecFL: Number(newData.SpecFL) || 0,
-          Departure: Boolean(newData.Departure),
-          SoftFLAS: Boolean(newData.SoftFLAS),
-          ConditionReach: newData.ConditionReach || 'Nothing',   // ← fontos sor
-          SpecOne: newData.SpecOne || 'Nothing',        // ← új
-          SpecTwo: newData.SpecTwo || 'Nothing',        // ← új
-        };
+        const airportsArray = newData.Airports 
+        ? newData.Airports.split(',')
+            .map(a => a.trim().toUpperCase())
+            .filter(a => a.length > 0)
+        : [];
+
+      const finalData = {
+        ...newData,
+        Airports: airportsArray,
+        MainFL: Number(newData.MainFL) || 0,
+        ReachFL: Number(newData.ReachFL) || 0,
+        ReleasedFL: Number(newData.ReleasedFL) || 0,
+        SpecFL: Number(newData.SpecFL) || 0,
+        Departure: Boolean(newData.Departure),
+        SoftFLAS: Boolean(newData.SoftFLAS),
+        ConditionReach: newData.ConditionReach || 'Nothing',
+        SpecOne: newData.SpecOne || 'nothing',
+        SpecTwo: newData.SpecTwo || 'nothing',
+      };
   
         const docRef = await addDoc(collection(db, 'Constraints'), finalData);
   
@@ -139,21 +145,25 @@ export default function DashboardConstraints() {
       if (!isSupervisor) return;
   
       try {
-        const finalData = {
-          ...editData,
-          Airports: typeof editData.Airports === 'string' 
-            ? editData.Airports.split(',').map(a => a.trim().toUpperCase()) 
-            : editData.Airports || [],
-          MainFL: Number(editData.MainFL) || 0,
-          ReachFL: Number(editData.ReachFL) || 0,
-          ReleasedFL: Number(editData.ReleasedFL) || 0,
-          SpecFL: Number(editData.SpecFL) || 0,
-          Departure: Boolean(editData.Departure),
-          SoftFLAS: Boolean(editData.SoftFLAS),
-          ConditionReach: editData.ConditionReach || 'Nothing',   // ← fontos sor
-          SpecOne: editData.SpecOne || 'Nothing',       // ← új
-          SpecTwo: editData.SpecTwo || 'Nothing',       // ← új
-        };
+        const airportsArray = typeof editData.Airports === 'string' 
+        ? editData.Airports.split(',')
+            .map(a => a.trim().toUpperCase())
+            .filter(a => a.length > 0)
+        : (Array.isArray(editData.Airports) ? editData.Airports.map(a => a.toUpperCase()) : []);
+
+      const finalData = {
+        ...editData,
+        Airports: airportsArray,
+        MainFL: Number(editData.MainFL) || 0,
+        ReachFL: Number(editData.ReachFL) || 0,
+        ReleasedFL: Number(editData.ReleasedFL) || 0,
+        SpecFL: Number(editData.SpecFL) || 0,
+        Departure: Boolean(editData.Departure),
+        SoftFLAS: Boolean(editData.SoftFLAS),
+        ConditionReach: editData.ConditionReach || 'Nothing',
+        SpecOne: editData.SpecOne || 'nothing',
+        SpecTwo: editData.SpecTwo || 'nothing',
+      };
   
         const docRef = doc(db, 'Constraints', editingId);
         await updateDoc(docRef, finalData);
