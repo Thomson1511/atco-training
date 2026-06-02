@@ -221,19 +221,19 @@ export default function DashboardConstraints() {
   if (error) return <div className="container mx-auto p-4"><h2 className="text-2xl font-bold">Dashboard Constraints</h2><p className="text-red-600">{error}</p></div>;
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="mx-auto px-3 py-4 max-w-[88%]">
       <h2 className="text-2xl font-bold mb-6">Dashboard Constraints</h2>
 
-      <div className="w-full">
-        <table className="min-w-full bg-white border border-gray-200 text-sm">
-          <thead>
-            <tr className="bg-blue-100">
-              <th className="py-3 px-3 border-b text-left min-w-[100px]">From</th>
+      <div className="w-full max-h-[calc(100vh-140px)] overflow-y-auto overflow-x-hidden border border-gray-200 rounded-lg shadow-sm">
+        <table className="w-full min-w-full bg-white text-sm border-collapse table-fixed">
+        <thead className="bg-blue-100 sticky top-0 z-10 shadow-sm">
+            <tr>
+              <th className="py-3 px-3 border-b text-left w-24">From</th>
               <th className="py-3 px-3 border-b text-left">Via</th>
-              <th className="py-3 px-3 border-b text-left min-w-[100px]">To</th>
+              <th className="py-3 px-3 border-b text-left w-24">To</th>
               <th className="py-3 px-3 border-b text-left">Departure</th>
               <th className="py-3 px-3 border-b text-left">Airports</th>
-              <th className="py-3 px-3 border-b text-left min-w-[100px]">Condition</th>
+              <th className="py-3 px-3 border-b text-left w-24">Condition</th>
               <th className="py-3 px-3 border-b text-left">MainFL</th>
               <th className="py-3 px-3 border-b text-left">ConditionReach</th>
               <th className="py-3 px-3 border-b text-left">ReachFL</th>
@@ -241,8 +241,8 @@ export default function DashboardConstraints() {
               <th className="py-3 px-3 border-b text-left">Released Desc</th>
               <th className="py-3 px-3 border-b text-left">Released Clb</th>
               <th className="py-3 px-3 border-b text-left">Released FL</th>
-              <th className="py-3 px-3 border-b text-left min-w-[100px]">SpecOne</th>
-              <th className="py-3 px-3 border-b text-left min-w-[100px]">SpecTwo</th>
+              <th className="py-3 px-3 border-b text-left w-24">SpecOne</th>
+              <th className="py-3 px-3 border-b text-left w-24">SpecTwo</th>
               <th className="py-3 px-3 border-b text-left">SpecFL</th>
               <th className="py-3 px-3 border-b text-left">Odd RFL</th>
               <th className="py-3 px-3 border-b text-left">Summer</th>
