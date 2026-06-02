@@ -26,7 +26,7 @@ export default function DashboardConstraints() {
 
   const [newData, setNewData] = useState({
     From: '', Via: '', To: '', Departure: false, Airports: '',
-    Condition: '', MainFL: '', ConditionReach: '', ReachFL: '',
+    Condition: 'Level', MainFL: '', ConditionReach: '', ReachFL: '',
     ReleasedTurn: false, ReleasedDesc: false, ReleasedClb: false, ReleasedFL: '',
     SpecOne: '', SpecTwo: '', SpecFL: '', OddRFL: false, Summer: false, SoftFLAS: false, Group: ''
   });
@@ -126,12 +126,29 @@ export default function DashboardConstraints() {
           .sort((a, b) => a.From.localeCompare(b.From)));
   
         // Reset űrlap
-        setNewData({
-          From: '', Via: '', To: '', Departure: false, Airports: '',
-          Condition: '', MainFL: '', ConditionReach: '', ReachFL: '',
-          ReleasedTurn: false, ReleasedDesc: false, ReleasedClb: false, ReleasedFL: '',
-          SpecOne: '', SpecTwo: '', SpecFL: '', OddRFL: false, Summer: false, SoftFLAS: false, Group: ''
-        });
+        setNewData(prev => ({
+          ...prev,
+          From: prev.From,           // marad
+          Via: prev.Via,             // marad
+          To: prev.To,               // marad
+          Departure: false,
+          Airports: '',
+          Condition: 'Level',        // alapértelmezett
+          MainFL: '',
+          ConditionReach: '',
+          ReachFL: '',
+          ReleasedTurn: false,
+          ReleasedDesc: false,
+          ReleasedClb: false,
+          ReleasedFL: '',
+          SpecOne: '',
+          SpecTwo: '',
+          SpecFL: '',
+          OddRFL: false,
+          Summer: false,
+          SoftFLAS: false,
+          Group: ''
+        }));
   
         setError(null);
       } catch (err) {
@@ -287,7 +304,7 @@ export default function DashboardConstraints() {
                     </select>
                   ) : item.Condition}
                 </td>
-                <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="number" value={editData.MainFL || ''} onChange={e => setEditData({...editData, MainFL: e.target.value})} onKeyDown={handleUpdate} className="w-full p-1 border rounded text-center" /> : item.MainFL}</td>
+                <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="number" value={editData.MainFL || ''} onChange={e => setEditData({...editData, MainFL: e.target.value})} onKeyDown={handleUpdate} className="w-full p-1 border rounded text-center  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /> : item.MainFL}</td>
                 {/* ConditionReach */}
                 <td className="py-2 px-3">
                   {editingId === item.id ? (
@@ -304,11 +321,11 @@ export default function DashboardConstraints() {
                     </select>
                   ) : item.ConditionReach}
                 </td>
-                <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="number" value={editData.ReachFL || ''} onChange={e => setEditData({...editData, ReachFL: e.target.value})} onKeyDown={handleUpdate} className="w-full p-1 border rounded text-center" /> : item.ReachFL}</td>
+                <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="number" value={editData.ReachFL || ''} onChange={e => setEditData({...editData, ReachFL: e.target.value})} onKeyDown={handleUpdate} className="w-full p-1 border rounded text-center  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /> : item.ReachFL}</td>
                 <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="checkbox" checked={editData.ReleasedTurn || false} onChange={e => setEditData({...editData, ReleasedTurn: e.target.checked})} /> : (item.ReleasedTurn ? 'Yes' : 'No')}</td>
                 <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="checkbox" checked={editData.ReleasedDesc || false} onChange={e => setEditData({...editData, ReleasedDesc: e.target.checked})} /> : (item.ReleasedDesc ? 'Yes' : 'No')}</td>
                 <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="checkbox" checked={editData.ReleasedClb || false} onChange={e => setEditData({...editData, ReleasedClb: e.target.checked})} /> : (item.ReleasedClb ? 'Yes' : 'No')}</td>
-                <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="number" value={editData.ReleasedFL || ''} onChange={e => setEditData({...editData, ReleasedFL: e.target.value})} onKeyDown={handleUpdate} className="w-full p-1 border rounded text-center" /> : item.ReleasedFL}</td>
+                <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="number" value={editData.ReleasedFL || ''} onChange={e => setEditData({...editData, ReleasedFL: e.target.value})} onKeyDown={handleUpdate} className="w-full p-1 border rounded text-center  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /> : item.ReleasedFL}</td>
                 {/* SpecOne */}
                 <td className="py-2 px-3">
                   {editingId === item.id ? (
@@ -341,7 +358,7 @@ export default function DashboardConstraints() {
                     </select>
                   ) : item.SpecTwo}
                 </td>
-                <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="number" value={editData.SpecFL || ''} onChange={e => setEditData({...editData, SpecFL: e.target.value})} onKeyDown={handleUpdate} className="w-full p-1 border rounded text-center" /> : item.SpecFL}</td>
+                <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="number" value={editData.SpecFL || ''} onChange={e => setEditData({...editData, SpecFL: e.target.value})} onKeyDown={handleUpdate} className="w-full p-1 border rounded text-center  [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /> : item.SpecFL}</td>
                 <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="checkbox" checked={editData.OddRFL || false} onChange={e => setEditData({...editData, OddRFL: e.target.checked})} /> : (item.OddRFL ? 'Yes' : 'No')}</td>
                 <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="checkbox" checked={editData.Summer || false} onChange={e => setEditData({...editData, Summer: e.target.checked})} /> : (item.Summer ? 'Yes' : 'No')}</td>
                 <td className="py-2 px-3 text-center">{editingId === item.id ? <input type="checkbox" checked={editData.SoftFLAS || false} onChange={e => setEditData({...editData, SoftFLAS: e.target.checked})} /> : (item.SoftFLAS ? 'Yes' : 'No')}</td>
@@ -408,7 +425,7 @@ export default function DashboardConstraints() {
                     ))}
                   </select>
                 </td>
-                <td className="py-2 px-3"><input type="number" value={newData.MainFL} onChange={e => setNewData({...newData, MainFL: e.target.value})} onKeyDown={handleAddConstraint} className="w-full p-1 border rounded text-center" /></td>
+                <td className="py-2 px-3"><input type="number" value={newData.MainFL} onChange={e => setNewData({...newData, MainFL: e.target.value})} onKeyDown={handleAddConstraint} className="w-full p-1 border rounded text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /></td>
                 {/* ConditionReach */}
                 <td className="py-2 px-3">
                   <select 
@@ -423,11 +440,11 @@ export default function DashboardConstraints() {
                     ))}
                   </select>
                 </td>
-                <td className="py-2 px-3"><input type="number" value={newData.ReachFL} onChange={e => setNewData({...newData, ReachFL: e.target.value})} onKeyDown={handleAddConstraint} className="w-full p-1 border rounded text-center" /></td>
+                <td className="py-2 px-3"><input type="number" value={newData.ReachFL} onChange={e => setNewData({...newData, ReachFL: e.target.value})} onKeyDown={handleAddConstraint} className="w-full p-1 border rounded text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /></td>
                 <td className="py-2 px-3 text-center"><input type="checkbox" checked={newData.ReleasedTurn} onChange={e => setNewData({...newData, ReleasedTurn: e.target.checked})} /></td>
                 <td className="py-2 px-3 text-center"><input type="checkbox" checked={newData.ReleasedDesc} onChange={e => setNewData({...newData, ReleasedDesc: e.target.checked})} /></td>
                 <td className="py-2 px-3 text-center"><input type="checkbox" checked={newData.ReleasedClb} onChange={e => setNewData({...newData, ReleasedClb: e.target.checked})} /></td>
-                <td className="py-2 px-3"><input type="number" value={newData.ReleasedFL} onChange={e => setNewData({...newData, ReleasedFL: e.target.value})} onKeyDown={handleAddConstraint} className="w-full p-1 border rounded text-center" /></td>
+                <td className="py-2 px-3"><input type="number" value={newData.ReleasedFL} onChange={e => setNewData({...newData, ReleasedFL: e.target.value})} onKeyDown={handleAddConstraint} className="w-full p-1 border rounded text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /></td>
                 {/* SpecOne */}
                 <td className="py-2 px-3">
                   <select 
@@ -456,7 +473,7 @@ export default function DashboardConstraints() {
                     ))}
                   </select>
                 </td>
-                <td className="py-2 px-3"><input type="number" value={newData.SpecFL} onChange={e => setNewData({...newData, SpecFL: e.target.value})} onKeyDown={handleAddConstraint} className="w-full p-1 border rounded text-center" /></td>
+                <td className="py-2 px-3"><input type="number" value={newData.SpecFL} onChange={e => setNewData({...newData, SpecFL: e.target.value})} onKeyDown={handleAddConstraint} className="w-full p-1 border rounded text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" /></td>
                 <td className="py-2 px-3 text-center"><input type="checkbox" checked={newData.OddRFL} onChange={e => setNewData({...newData, OddRFL: e.target.checked})} /></td>
                 <td className="py-2 px-3 text-center"><input type="checkbox" checked={newData.Summer} onChange={e => setNewData({...newData, Summer: e.target.checked})} /></td>
                 <td className="py-2 px-3 text-center"><input type="checkbox" checked={newData.SoftFLAS} onChange={e => setNewData({...newData, SoftFLAS: e.target.checked})} /></td>

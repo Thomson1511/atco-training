@@ -2,28 +2,35 @@
 import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFilter, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 export default function Constraints() {
   const [constraints, setConstraints] = useState([]);
   const [shuffledConstraints, setShuffledConstraints] = useState([]);
+  const [filteredConstraints, setFilteredConstraints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [feedback, setFeedback] = useState(null); // 'correct' | 'incorrect' | null
+  const [feedback, setFeedback] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [mistakes, setMistakes] = useState(0);
 
-  // Válasz state-ek (2. sáv)
+  // Szűrő állapot
+  const [showFilter, setShowFilter] = useState(false);
+  const [selectedFrom, setSelectedFrom] = useState([]);
+  const [selectedTo, setSelectedTo] = useState([]);
+
+  // Válasz state-ek
   const [selectedLevelType, setSelectedLevelType] = useState('');
   const [levelValue, setLevelValue] = useState('');
   const [selectedCrossType, setSelectedCrossType] = useState('');
   const [otherValue, setOtherValue] = useState('');
 
-  // Released checkboxok és FL input
   const [releasedTurn, setReleasedTurn] = useState(false);
   const [releasedDesc, setReleasedDesc] = useState(false);
   const [releasedClb, setReleasedClb] = useState(false);
   const [releasedFL, setReleasedFL] = useState('');
 
-  // 4. sáv state-ek
   const [specCondition1, setSpecCondition1] = useState('');
   const [specCondition2, setSpecCondition2] = useState('');
   const [specInput, setSpecInput] = useState('');
@@ -31,236 +38,157 @@ export default function Constraints() {
   const [oddRFL, setOddRFL] = useState(false);
   const [atSummerRight, setAtSummerRight] = useState(false);
 
-  const [hintLevel, setHintLevel] = useState(0); // 0 = semmi, 1 = hint (highlight), 2 = solution (kitöltés)
+  const [hintLevel, setHintLevel] = useState(0);
+
+  // Szűrőhöz egyedi opciók
+  const [fromOptions, setFromOptions] = useState([]);
+  const [toOptions, setToOptions] = useState([]);
 
   useEffect(() => {
     const q = query(collection(db, 'Constraints'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = [];
-      snapshot.forEach((doc) => {
-        data.push({
-          id: doc.id,
-          ...doc.data(),
-        });
-      });
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setConstraints(data);
 
-      // Csak akkor keverünk, ha még nincs kevert lista (első betöltés)
+      const fromSet = new Set(data.map(item => item.From).filter(Boolean));
+      const toSet = new Set(data.map(item => item.To).filter(Boolean));
+
+      setFromOptions([...fromSet].sort());
+      setToOptions([...toSet].sort());
+
       if (data.length > 0 && shuffledConstraints.length === 0) {
         const shuffled = [...data].sort(() => Math.random() - 0.5);
         setShuffledConstraints(shuffled);
       }
 
       setLoading(false);
-    }, (error) => {
-      console.error('Error fetching constraints:', error);
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
+  // Szűrés
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key !== 'Enter') return;
-  
-      // Ha a fókuszban lévő elem egy gomb, akkor ne fussunk bele kétszer
-      if (event.target.tagName === 'BUTTON') return;
-  
-      event.preventDefault();
-      handleNext();
-    };
-  
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [
-    // Minden state, amit a handleNext használ
-    currentIndex,
-    selectedLevelType,
-    levelValue,
-    selectedCrossType,
-    otherValue,
-    releasedTurn,
-    releasedDesc,
-    releasedClb,
-    releasedFL,
-    specCondition1,
-    specCondition2,
-    specInput,
-    softFLAS,
-    oddRFL,
-    atSummerRight,
-    shuffledConstraints,
-  ]);
+    let result = shuffledConstraints;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">Betöltés...</div>
-      </div>
-    );
-  }
+    if (selectedFrom.length > 0) {
+      result = result.filter(item => selectedFrom.includes(item.From));
+    }
+    if (selectedTo.length > 0) {
+      result = result.filter(item => selectedTo.includes(item.To));
+    }
 
-  if (constraints.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-500">Nincs constraint az adatbázisban</div>
-      </div>
-    );
-  }
+    setFilteredConstraints(result);
+    setCurrentIndex(0);
+  }, [shuffledConstraints, selectedFrom, selectedTo]);
 
-  const currentConstraint = shuffledConstraints[currentIndex] || {};
-  const totalCount = shuffledConstraints.length;
-  const currentNumber = currentIndex + 1;
+  const currentConstraint = filteredConstraints[currentIndex] || {};
+  const totalCount = filteredConstraints.length;
+  const currentNumber = totalCount > 0 ? currentIndex + 1 : 0;
 
   // Mappingek
   const conditionMapping = {
-    '': null,
-    'at': 'Level',
-    'climb': 'CLB',
-    'descent': 'DESC',
-    'subject': 'AR',
+    '': null, 'at': 'Level', 'climb': 'CLB', 'descent': 'DESC', 'subject': 'AR',
   };
 
   const crossMapping = {
-    '': 'Nothing',
-    'above': 'Above',
-    'below': 'Below',
+    '': 'Nothing', 'above': 'Above', 'below': 'Below',
   };
 
-  // 4. sáv mappingek
   const specOneMapping = {
-    '': 'nothing',
-    'summer': 'Summer',
-    'tra06d': 'TRA',
-    'via': 'Via',
+    '': 'nothing', 'summer': 'Summer', 'tra06d': 'TRA', 'via': 'Via',
   };
 
   const specTwoMapping = {
-    '': 'nothing',
-    'level': 'At',
-    'different': 'Different',
+    '': 'nothing', 'level': 'At', 'different': 'Different',
   };
 
-    // Mezok, amiket highlightolni kell HINT módban
-    const needsHighlight = {
-      levelType: Boolean(currentConstraint.Condition),
-      mainFL: currentConstraint.MainFL !== undefined && currentConstraint.MainFL !== null,
-      crossLoR: currentConstraint.ConditionReach && currentConstraint.ConditionReach !== 'Nothing',
-      reachFL: currentConstraint.ReachFL !== undefined && currentConstraint.ReachFL !== null && currentConstraint.ReachFL !== 0,
-      
-      releasedTurn: Boolean(currentConstraint.ReleasedTurn),
-      releasedDesc: Boolean(currentConstraint.ReleasedDesc),
-      releasedClb: Boolean(currentConstraint.ReleasedClb),
-      releasedFL: currentConstraint.ReleasedFL !== undefined && currentConstraint.ReleasedFL !== null && currentConstraint.ReleasedFL !== 0,
-      
-      specOne: currentConstraint.SpecOne && currentConstraint.SpecOne.toLowerCase() !== 'nothing',
-      specTwo: currentConstraint.SpecTwo && currentConstraint.SpecTwo !== 'nothing',
-      specFL: currentConstraint.SpecFL !== undefined && currentConstraint.SpecFL !== null && currentConstraint.SpecFL !== 0,
-      
-      softFLAS: Boolean(currentConstraint.SoftFLAS),
-      oddRFL: Boolean(currentConstraint.OddRFL),
-      atSummerRight: Boolean(currentConstraint.Summer),
+  // Highlight logika
+  const needsHighlight = {
+    levelType: Boolean(currentConstraint.Condition),
+    mainFL: currentConstraint.MainFL != null,
+    crossLoR: currentConstraint.ConditionReach && currentConstraint.ConditionReach !== 'Nothing',
+    reachFL: currentConstraint.ReachFL != null && currentConstraint.ReachFL !== 0,
+    releasedTurn: Boolean(currentConstraint.ReleasedTurn),
+    releasedDesc: Boolean(currentConstraint.ReleasedDesc),
+    releasedClb: Boolean(currentConstraint.ReleasedClb),
+    releasedFL: currentConstraint.ReleasedFL != null && currentConstraint.ReleasedFL !== 0,
+    specOne: currentConstraint.SpecOne && currentConstraint.SpecOne.toLowerCase() !== 'nothing',
+    specTwo: currentConstraint.SpecTwo && currentConstraint.SpecTwo !== 'nothing',
+    specFL: currentConstraint.SpecFL != null && currentConstraint.SpecFL !== 0,
+    softFLAS: Boolean(currentConstraint.SoftFLAS),
+    oddRFL: Boolean(currentConstraint.OddRFL),
+    atSummerRight: Boolean(currentConstraint.Summer),
+  };
+
+  // Enter billentyű
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Enter') return;
+      if (event.target.tagName === 'BUTTON') return;
+      event.preventDefault();
+      handleNext();
     };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [
+    currentIndex, selectedLevelType, levelValue, selectedCrossType, otherValue,
+    releasedTurn, releasedDesc, releasedClb, releasedFL,
+    specCondition1, specCondition2, specInput,
+    softFLAS, oddRFL, atSummerRight, shuffledConstraints,
+    filteredConstraints
+  ]);
 
   const handleNext = () => {
     let isCorrect = true;
 
-    // 1. Condition
     const selectedConditionDb = conditionMapping[selectedLevelType];
-    if (!selectedConditionDb || selectedConditionDb !== currentConstraint.Condition) {
-      isCorrect = false;
-    }
+    if (!selectedConditionDb || selectedConditionDb !== currentConstraint.Condition) isCorrect = false;
 
-    // 2. MainFL
     const userMainFL = levelValue.trim() !== '' ? Number(levelValue) : NaN;
     const dbMainFL = Number(currentConstraint.MainFL);
-    if (isNaN(userMainFL) || isNaN(dbMainFL) || userMainFL !== dbMainFL) {
-      isCorrect = false;
-    }
+    if (isNaN(userMainFL) || isNaN(dbMainFL) || userMainFL !== dbMainFL) isCorrect = false;
 
-    // 3. ConditionReach
     const selectedCrossDb = crossMapping[selectedCrossType];
     const dbConditionReach = currentConstraint.ConditionReach || 'Nothing';
-    if (selectedCrossDb !== dbConditionReach) {
-      isCorrect = false;
-    }
+    if (selectedCrossDb !== dbConditionReach) isCorrect = false;
 
-    // 4. ReachFL
     const userReachFL = otherValue.trim() !== '' ? Number(otherValue) : 0;
     const dbReachFL = Number(currentConstraint.ReachFL ?? 0);
-    if (
-      (dbReachFL === 0 && userReachFL !== 0) ||
-      (dbReachFL !== 0 && userReachFL !== dbReachFL)
-    ) {
-      isCorrect = false;
-    }
+    if ((dbReachFL === 0 && userReachFL !== 0) || (dbReachFL !== 0 && userReachFL !== dbReachFL)) isCorrect = false;
 
-    // 5. Released Turn, Descent, Climb
-    if (Boolean(releasedTurn) !== Boolean(currentConstraint.ReleasedTurn)) {
-      isCorrect = false;
-    }
-    if (Boolean(releasedDesc) !== Boolean(currentConstraint.ReleasedDesc)) {
-      isCorrect = false;
-    }
-    if (Boolean(releasedClb) !== Boolean(currentConstraint.ReleasedClb)) {
-      isCorrect = false;
-    }
+    if (Boolean(releasedTurn) !== Boolean(currentConstraint.ReleasedTurn)) isCorrect = false;
+    if (Boolean(releasedDesc) !== Boolean(currentConstraint.ReleasedDesc)) isCorrect = false;
+    if (Boolean(releasedClb) !== Boolean(currentConstraint.ReleasedClb)) isCorrect = false;
 
-    // 6. ReleasedFL
     const userReleasedFL = releasedFL.trim() !== '' ? Number(releasedFL) : 0;
     const dbReleasedFL = Number(currentConstraint.ReleasedFL ?? 0);
-    if (
-      (dbReleasedFL === 0 && userReleasedFL !== 0) ||
-      (dbReleasedFL !== 0 && userReleasedFL !== dbReleasedFL)
-    ) {
-      isCorrect = false;
-    }
+    if ((dbReleasedFL === 0 && userReleasedFL !== 0) || (dbReleasedFL !== 0 && userReleasedFL !== dbReleasedFL)) isCorrect = false;
 
-    // 7. SpecOne
     const selectedSpecOneDb = specOneMapping[specCondition1];
     const dbSpecOne = (currentConstraint.SpecOne || 'nothing').toString().trim().toLowerCase();
-    if (selectedSpecOneDb !== dbSpecOne) {
-      isCorrect = false;
-    }
+    if (selectedSpecOneDb !== dbSpecOne) isCorrect = false;
 
-    // 8. SpecTwo
     const selectedSpecTwoDb = specTwoMapping[specCondition2];
     const dbSpecTwo = currentConstraint.SpecTwo?.trim() || 'nothing';
-    if (selectedSpecTwoDb !== dbSpecTwo) {
-      isCorrect = false;
-    }
+    if (selectedSpecTwoDb !== dbSpecTwo) isCorrect = false;
 
-    // 9. SpecFL
     const userSpecFL = specInput.trim() !== '' ? Number(specInput) : 0;
     const dbSpecFL = Number(currentConstraint.SpecFL ?? 0);
-    if (
-      (dbSpecFL === 0 && userSpecFL !== 0) ||
-      (dbSpecFL !== 0 && userSpecFL !== dbSpecFL)
-    ) {
-      isCorrect = false;
-    }
+    if ((dbSpecFL === 0 && userSpecFL !== 0) || (dbSpecFL !== 0 && userSpecFL !== dbSpecFL)) isCorrect = false;
 
-    // 10. Checkboxok
-    if (Boolean(softFLAS) !== Boolean(currentConstraint.SoftFLAS)) {
-      isCorrect = false;
-    }
-    if (Boolean(oddRFL) !== Boolean(currentConstraint.OddRFL)) {
-      isCorrect = false;
-    }
-    if (Boolean(atSummerRight) !== Boolean(currentConstraint.Summer)) {
-      isCorrect = false;
-    }
+    if (Boolean(softFLAS) !== Boolean(currentConstraint.SoftFLAS)) isCorrect = false;
+    if (Boolean(oddRFL) !== Boolean(currentConstraint.OddRFL)) isCorrect = false;
+    if (Boolean(atSummerRight) !== Boolean(currentConstraint.Summer)) isCorrect = false;
 
-    // Végső döntés
     if (isCorrect) {
       setFeedback('correct');
       setTimeout(() => {
         setFeedback(null);
-
-        if (currentIndex < shuffledConstraints.length - 1) {
-          setCurrentIndex((prev) => prev + 1);
+        if (currentIndex < filteredConstraints.length - 1) {
+          setCurrentIndex(prev => prev + 1);
           resetFields();
         } else {
           setShowCompleted(true);
@@ -270,30 +198,27 @@ export default function Constraints() {
             setCurrentIndex(0);
             resetFields();
             setShowCompleted(false);
+            setMistakes(0);
           }, 2200);
         }
       }, 1400);
     } else {
       setFeedback('incorrect');
+      setMistakes(prev => prev + 1);
       setTimeout(() => setFeedback(null), 3200);
     }
   };
 
   const handleHint = () => {
     if (hintLevel === 0) {
-      setHintLevel(1); // Highlight mód
+      setHintLevel(1);
     } else if (hintLevel === 1) {
-      setHintLevel(2); // Solution mód (kitöltés)
+      setHintLevel(2);
 
-      // Automatikus kitöltés
-      setSelectedLevelType(
-        Object.keys(conditionMapping).find(key => conditionMapping[key] === currentConstraint.Condition) || ''
-      );
+      setSelectedLevelType(Object.keys(conditionMapping).find(k => conditionMapping[k] === currentConstraint.Condition) || '');
       setLevelValue(currentConstraint.MainFL?.toString() || '');
-      
-      const crossKey = Object.keys(crossMapping).find(
-        key => crossMapping[key] === (currentConstraint.ConditionReach || 'Nothing')
-      );
+
+      const crossKey = Object.keys(crossMapping).find(k => crossMapping[k] === (currentConstraint.ConditionReach || 'Nothing'));
       setSelectedCrossType(crossKey || '');
 
       setOtherValue(currentConstraint.ReachFL?.toString() || '');
@@ -303,16 +228,8 @@ export default function Constraints() {
       setReleasedClb(Boolean(currentConstraint.ReleasedClb));
       setReleasedFL(currentConstraint.ReleasedFL?.toString() || '');
 
-      setSpecCondition1(
-        Object.keys(specOneMapping).find(
-          key => specOneMapping[key] === (currentConstraint.SpecOne || 'nothing').toLowerCase()
-        ) || ''
-      );
-      setSpecCondition2(
-        Object.keys(specTwoMapping).find(
-          key => specTwoMapping[key] === (currentConstraint.SpecTwo || 'nothing')
-        ) || ''
-      );
+      setSpecCondition1(Object.keys(specOneMapping).find(k => specOneMapping[k] === (currentConstraint.SpecOne || 'nothing').toLowerCase()) || '');
+      setSpecCondition2(Object.keys(specTwoMapping).find(k => specTwoMapping[k] === (currentConstraint.SpecTwo || 'nothing')) || '');
       setSpecInput(currentConstraint.SpecFL?.toString() || '');
 
       setSoftFLAS(Boolean(currentConstraint.SoftFLAS));
@@ -336,21 +253,31 @@ export default function Constraints() {
     setSoftFLAS(false);
     setOddRFL(false);
     setAtSummerRight(false);
-    
-    setHintLevel(0); // Reset hint állapot
+    setHintLevel(0);
   };
 
   return (
     <div className="h-screen bg-gray-50 grid grid-rows-5 overflow-hidden relative">
 
       {/* 1. sáv */}
-      <div className="bg-white border-b border-gray-200 overflow-auto">
+      <div className="bg-white border-b border-gray-200 overflow-auto relative">
         <div className="container mx-auto px-4 py-6 h-full flex flex-col justify-center">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
-              {currentConstraint.Airports?.length > 0 ? currentConstraint.Airports.join(',  ') : 'Nincs megadva repülőtér'}
-            </h1>
+          <div className="flex justify-between items-center mb-6">
+            <div className="text-center flex-1">
+              <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
+                {currentConstraint.Departure ? "Departed from: " : "Arrival to: "}
+                {currentConstraint.Airports?.length > 0 ? currentConstraint.Airports.join(',  ') : 'Nincs megadva repülőtér'}
+              </h1>
+            </div>
+
+            <button 
+              onClick={() => setShowFilter(!showFilter)}
+              className="text-gray-600 hover:text-gray-800 text-2xl p-2"
+            >
+              <FontAwesomeIcon icon={faFilter} />
+            </button>
           </div>
+
           <div className="grid grid-cols-3 gap-6 max-w-4xl mx-auto flex-1 items-center">
             <div className="text-center">
               <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">From</div>
@@ -510,27 +437,29 @@ export default function Constraints() {
 
       {/* 5. sáv */}
       <div className="bg-gray-50 border-t border-gray-200 flex items-center justify-center relative">
-        <div className="grid grid-cols-3 gap-8 w-full max-w-4xl px-6">
+        <div className="grid grid-cols-4 gap-6 w-full max-w-4xl px-6">
           <div className="flex items-center justify-center text-2xl font-bold text-gray-700">
-            {currentNumber} / {totalCount}
+            {totalCount > 0 ? `${currentNumber} / ${totalCount}` : '0 / 0'}
           </div>
 
           <div className="flex items-center justify-center">
-            <button onClick={handleHint}
-              className="px-10 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg shadow-md transition-colors">
+            <button onClick={handleHint} className="px-10 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg shadow-md transition-colors">
               {hintLevel === 0 ? 'HINT' : hintLevel === 1 ? 'SOLUTION' : 'HINT'}
             </button>
           </div>
 
           <div className="flex items-center justify-center">
-            <button onClick={handleNext}
-              className="px-10 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors">
+            <button onClick={handleNext} className="px-10 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors">
               Next
             </button>
           </div>
-        </div>
 
-        {/* Feedback overlayek */}
+          <div className="flex items-center justify-center">
+            <div className="text-red-600 font-semibold text-lg flex items-center gap-2">
+              Hibák: <span className="text-2xl font-bold">{mistakes}</span>
+            </div>
+          </div>
+          {/* Feedback és Completed overlayek */}
         {feedback && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10 pointer-events-none">
             <div className={`px-10 py-5 rounded-xl text-3xl font-bold text-white shadow-2xl ${feedback === 'correct' ? 'bg-green-600' : 'bg-red-600'}`}>
@@ -547,7 +476,60 @@ export default function Constraints() {
             </div>
           </div>
         )}
+        </div>
       </div>
+
+      {/* Szűrő panel */}
+      {showFilter && (
+        <div className="absolute top-4 right-4 bg-white shadow-2xl rounded-xl w-96 z-50 border border-gray-200 overflow-hidden">
+          <div className="flex justify-between items-center border-b p-4">
+            <h3 className="font-semibold text-lg">Szűrő</h3>
+            <button onClick={() => setShowFilter(false)} className="text-gray-500 hover:text-gray-700">
+              <FontAwesomeIcon icon={faTimes} size="lg" />
+            </button>
+          </div>
+
+          <div className="p-4 grid grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto">
+            <div>
+              <h4 className="font-medium mb-3 text-gray-700">From</h4>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {fromOptions.map(place => (
+                  <label key={place} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedFrom.includes(place)}
+                      onChange={() => setSelectedFrom(prev => 
+                        prev.includes(place) ? prev.filter(p => p !== place) : [...prev, place]
+                      )}
+                      className="w-4 h-4"
+                    />
+                    <span>{place}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium mb-3 text-gray-700">To</h4>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {toOptions.map(place => (
+                  <label key={place} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedTo.includes(place)}
+                      onChange={() => setSelectedTo(prev => 
+                        prev.includes(place) ? prev.filter(p => p !== place) : [...prev, place]
+                      )}
+                      className="w-4 h-4"
+                    />
+                    <span>{place}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
