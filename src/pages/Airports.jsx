@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { Map, Popup, Marker, config } from '@maptiler/sdk';
@@ -6,27 +6,35 @@ import '@maptiler/sdk/dist/maptiler-sdk.css';
 
 export default function Airports() {
   const [airports, setAirports] = useState([]);
-  const [shuffledQuestions, setShuffledQuestions] = useState([]); // Kevert kérdéslista
+  const [shuffledQuestions, setShuffledQuestions] = useState([]);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [errorCount, setErrorCount] = useState(0);
+  const [isReversed, setIsReversed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [userAnswer, setUserAnswer] = useState('');
-  const [errorCount, setErrorCount] = useState(0); // Helytelen válaszok számláló
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0); // Jelenlegi kérdés sorszáma
-  const [isReversed, setIsReversed] = useState(false); // Kérdés sorrend váltása
+  const [mistakesPerAirport, setMistakesPerAirport] = useState({});
+
+  const [hintStage, setHintStage] = useState(0);
+  const [currentHint, setCurrentHint] = useState('');
+
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const markers = useRef({}); // Ref a markerek tárolására
+  const markers = useRef({});
 
-  // MapTiler API kulcs
+  // Ref-ek
+  const currentQuestionRef = useRef(null);
+  const shuffledQuestionsRef = useRef([]);
+  const isReversedRef = useRef(false);
+  const mistakesPerAirportRef = useRef({});
+  const currentQuestionIndexRef = useRef(0);
+
   const mapTilerKey = 'Tx0tJslnlndsHe3hs95w';
-
-  // Zoom szint a helyes válasz utáni animációhoz (állítható)
-  const zoomLevel = 5; // Alapértelmezett zoom szint, módosítható
+  const zoomLevel = 5;
 
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  // Fisher-Yates shuffle algoritmus
   const shuffleArray = (array) => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -36,14 +44,23 @@ export default function Airports() {
     return newArray;
   };
 
-    // Kérdés sorrend váltása
-    const toggleQuestionOrder = () => {
-      setIsReversed(prev => !prev);
-    };
+  const getMarkerColor = (mistakeCount) => {
+    if (mistakeCount === 0) return 'green';
+    if (mistakeCount === 1) return 'yellow';
+    if (mistakeCount === 2) return 'orange';
+    return 'red';
+  };
 
-  // Repülőterek lekérése Firestore-ból
+  const generateHalfHint = (answer) => {
+    const trimmed = answer.trim();
+    const halfLength = Math.ceil(trimmed.length / 2);
+    return trimmed.substring(0, halfLength) + '.'.repeat(trimmed.length - halfLength);
+  };
+
+  // Repülőterek betöltése
   useEffect(() => {
-    let isMounted = true; // Megakadályozza a dupla logolást Strict Mode-ban
+    let isMounted = true;
+
     const fetchAirports = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'Airports'));
@@ -51,247 +68,282 @@ export default function Airports() {
           id: doc.id,
           ...doc.data(),
         }));
-        if (isMounted) {
+
+        if (isMounted && airportList.length > 0) {
+          const shuffled = shuffleArray(airportList);
           setAirports(airportList);
-          // Kevert kérdéslista inicializálása
-          if (airportList.length > 0) {
-            const shuffled = shuffleArray(airportList);
-            setShuffledQuestions(shuffled);
-            setCurrentQuestion(shuffled[0]);
-            setCurrentQuestionIndex(1); // Kezdeti kérdés sorszáma
-          } else {
-            console.warn('Nincsenek repülőterek az adatbázisban.');
-            setError('Nincsenek repülőterek az adatbázisban.');
-          }
-          setLoading(false);
+          setShuffledQuestions(shuffled);
+          setCurrentQuestion(shuffled[0]);
+          setCurrentQuestionIndex(0);
+          setMistakesPerAirport({});
+          setHintStage(0);
+          setCurrentHint('');
+        } else if (isMounted) {
+          setError('Nincsenek repülőterek az adatbázisban.');
         }
+        setLoading(false);
       } catch (err) {
         if (isMounted) {
-          console.error('Hiba a repülőterek betöltésekor:', err);
-          setError('Nem sikerült betölteni a repülőtereket: ' + err.message);
+          console.error(err);
+          setError('Nem sikerült betölteni a repülőtereket.');
           setLoading(false);
         }
       }
     };
+
     fetchAirports();
-    return () => {
-      isMounted = false; // Cleanup Strict Mode-hoz
-    };
+    return () => { isMounted = false; };
   }, []);
 
-  // MapTiler térkép inicializálása
+  // Ref-ek frissítése
+  useEffect(() => { currentQuestionRef.current = currentQuestion; }, [currentQuestion]);
+  useEffect(() => { shuffledQuestionsRef.current = shuffledQuestions; }, [shuffledQuestions]);
+  useEffect(() => { isReversedRef.current = isReversed; }, [isReversed]);
+  useEffect(() => { mistakesPerAirportRef.current = mistakesPerAirport; }, [mistakesPerAirport]);
+  useEffect(() => { currentQuestionIndexRef.current = currentQuestionIndex; }, [currentQuestionIndex]);
+
+  useEffect(() => {
+    setHintStage(0);
+    setCurrentHint('');
+  }, [currentQuestion]);
+
+  // Térkép és markerek
   useEffect(() => {
     if (!mapContainer.current || airports.length === 0) return;
 
-    // API kulcs beállítása
     config.apiKey = mapTilerKey;
 
-    // Térkép inicializálása
     map.current = new Map({
       container: mapContainer.current,
-      style: 'https://api.maptiler.com/maps/01974fe0-7e99-7127-b3bd-efa9385fdb1e/style.json?key=Tx0tJslnlndsHe3hs95w',
-      center: [0, 20], // Kezdeti középpont (hosszúság, szélesség)
-      zoom: 2, // Kezdeti nagyítási szint
+      style: `https://api.maptiler.com/maps/01974fe0-7e99-7127-b3bd-efa9385fdb1e/style.json?key=${mapTilerKey}`,
+      center: [0, 20],
+      zoom: 2,
     });
 
-    // Markerek hozzáadása a repülőterekhez piros pöttyökként
+    markers.current = {};
+
     airports.forEach(airport => {
       const { Lat, Long, 'ICAO Code': icaoCode, Airport: airportName } = airport;
-      if (Lat && Long) {
-        const popup = new Popup({ offset: 25 }).setHTML(
-          `<h3>${icaoCode}</h3><p>${airportName}</p>`
-        );
+      if (!Lat || !Long) return;
 
-        // Egyéni piros pötty marker
-        const markerElement = document.createElement('div');
-        markerElement.style.backgroundColor = 'red';
-        markerElement.style.width = '12px';
-        markerElement.style.height = '12px';
-        markerElement.style.borderRadius = '50%';
-        markerElement.style.border = '2px solid white';
-        markerElement.style.cursor = 'pointer';
+      const popup = new Popup({ offset: 25 }).setHTML(`<h3>${icaoCode}</h3><p>${airportName}</p>`);
 
-        const marker = new Marker({ element: markerElement })
-          .setLngLat([parseFloat(Long), parseFloat(Lat)])
-          .setPopup(popup)
-          .addTo(map.current);
+      const markerElement = document.createElement('div');
+      markerElement.style.backgroundColor = 'blue';
+      markerElement.style.width = '12px';
+      markerElement.style.height = '12px';
+      markerElement.style.borderRadius = '50%';
+      markerElement.style.border = '2px solid white';
+      markerElement.style.cursor = 'pointer';
 
-        // Marker tárolása a ref-ben az ICAO Code alapján
-        markers.current[icaoCode] = { marker, element: markerElement };
+      const marker = new Marker({ element: markerElement })
+        .setLngLat([parseFloat(Long), parseFloat(Lat)])
+        .setPopup(popup)
+        .addTo(map.current);
 
-        marker.getElement().addEventListener('click', () => {
-          // Ellenőrzi, hogy a kiválasztott marker helyes-e
-          if (currentQuestion && icaoCode === currentQuestion['ICAO Code']) {
-            // Marker színének megváltoztatása zöldre
-            markerElement.style.backgroundColor = 'green';
-            // Zoom animáció a helyes markerre
-            map.current.flyTo({
-              center: [
-                parseFloat(Long),
-                isMobile ? parseFloat(Lat) - 2 : parseFloat(Lat), // Mobil esetén 1 fokkal délebbre
-              ],
-              zoom: zoomLevel,
-              duration: 2000, // Animáció időtartama (ms)
-            });
-            // Kérdés váltás az animáció befejezése után
-            map.current.once('moveend', () => {
-              // Következő kérdés kiválasztása
-              const nextIndex = currentQuestionIndex;
-              if (nextIndex < shuffledQuestions.length) {
-                setCurrentQuestion(shuffledQuestions[nextIndex]);
-                setCurrentQuestionIndex(prev => prev + 1);
-              } else {
-                // Ha vége a listának, újrakeverés
-                const newShuffled = shuffleArray(airports);
-                setShuffledQuestions(newShuffled);
-                setCurrentQuestion(newShuffled[0]);
-                setCurrentQuestionIndex(1);
-              }
-            });
-          }
-        });
-      }
+      markers.current[icaoCode] = { marker, element: markerElement };
+
+      marker.getElement().addEventListener('click', () => {
+        const currentQ = currentQuestionRef.current;
+        if (!currentQ) return;
+
+        if (icaoCode === currentQ['ICAO Code']) {
+          handleCorrectAnswer(airport);
+        } else {
+          handleWrongMarkerClick();
+        }
+      });
     });
 
-    // Térkép eltávolítása komponens leszerelésekor
     return () => {
-      if (map.current) {
-        map.current.remove();
-      }
+      if (map.current) map.current.remove();
     };
   }, [airports]);
 
-  // Válasz ellenőrzése az input mezőből
-  const handleCheckAnswer = (e) => {
-    e.preventDefault();
-    const userAnswerCleaned = userAnswer.trim().toLowerCase();
-    const correctAnswerCleaned = isReversed
-      ? currentQuestion?.['ICAO Code'].toLowerCase()
-      : currentQuestion?.Airport.toLowerCase();
-    if (userAnswerCleaned === correctAnswerCleaned) {
-      // Helyes válasz esetén zoom a megfelelő markerre
-      const correctAirport = airports.find(
-        airport => airport['ICAO Code'] === currentQuestion['ICAO Code']
-      );
-      if (correctAirport && correctAirport.Lat && correctAirport.Long) {
-        // Marker színének megváltoztatása zöldre
-        const markerElement = markers.current[correctAirport['ICAO Code']]?.element;
-        if (markerElement) {
-          markerElement.style.backgroundColor = 'green';
-        }
-        map.current.flyTo({
-          center: [
-            parseFloat(correctAirport.Long),
-            isMobile ? parseFloat(correctAirport.Lat) - 2 : parseFloat(correctAirport.Lat), // Mobil esetén 1 fokkal délebbre
-          ],
-          zoom: zoomLevel,
-          duration: 2000, // Animáció időtartama (ms)
-        });
-        // Kérdés váltás az animáció befejezése után
-        map.current.once('moveend', () => {
-          // Következő kérdés kiválasztása
-          const nextIndex = currentQuestionIndex;
-          if (nextIndex < shuffledQuestions.length) {
-            setCurrentQuestion(shuffledQuestions[nextIndex]);
-            setCurrentQuestionIndex(prev => prev + 1);
-          } else {
-            // Ha vége a listának, újrakeverés és markerek visszaállítása pirosra
-            Object.values(markers.current).forEach(({ element }) => {
-              element.style.backgroundColor = 'red';
-            });
-            const newShuffled = shuffleArray(airports);
-            setShuffledQuestions(newShuffled);
-            setCurrentQuestion(newShuffled[0]);
-            setCurrentQuestionIndex(1);
-            setErrorCount(0); // Hibaszámláló visszaállítása
-          }
-        });
-      }
-    } else {
-      // Helytelen válasz esetén növeljük a hibaszámlálót
-      setErrorCount(prev => prev + 1);
+  const updateMarkerColor = (icaoCode) => {
+    const markerData = markers.current[icaoCode];
+    const mistakeCount = mistakesPerAirportRef.current[icaoCode] || 0;
+    if (markerData) {
+      markerData.element.style.backgroundColor = getMarkerColor(mistakeCount);
     }
-    // Mindig töröljük az input mezőt
-    setUserAnswer('');
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
-        <p>Betöltés...</p>
-      </div>
-    );
-  }
+  // ÚJ: Magenta körvonal kiemelés 3 másodpercre
+  const highlightMarker = (icaoCode) => {
+    const markerData = markers.current[icaoCode];
+    if (!markerData) return;
 
-  if (error) {
-    return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
+    // Magenta körvonal
+    markerData.element.style.border = '2px solid magenta';
+
+    // 3 másodperc után visszafehéredik
+    setTimeout(() => {
+      if (markerData.element) {
+        markerData.element.style.border = '2px solid white';
+      }
+    }, 3000);
+  };
+
+  const handleCorrectAnswer = useCallback((correctAirport) => {
+    const icao = correctAirport['ICAO Code'];
+    updateMarkerColor(icao);
+    highlightMarker(icao);   // ← ÚJ: magenta kiemelés
+
+    map.current.flyTo({
+      center: [
+        parseFloat(correctAirport.Long),
+        isMobile ? parseFloat(correctAirport.Lat) - 2 : parseFloat(correctAirport.Lat),
+      ],
+      zoom: zoomLevel,
+      duration: 2000,
+    });
+
+    map.current.once('moveend', () => {
+      const currentIndex = currentQuestionIndexRef.current;
+      const shuffled = shuffledQuestionsRef.current;
+      const nextIndex = currentIndex + 1;
+
+      if (nextIndex < shuffled.length) {
+        setCurrentQuestion(shuffled[nextIndex]);
+        setCurrentQuestionIndex(nextIndex);
+      } else {
+        Object.values(markers.current).forEach(({ element }) => {
+          element.style.backgroundColor = 'blue';
+          element.style.border = '2px solid white';
+        });
+
+        const newShuffled = shuffleArray(airports);
+        setShuffledQuestions(newShuffled);
+        setCurrentQuestion(newShuffled[0]);
+        setCurrentQuestionIndex(0);
+        setErrorCount(0);
+        setMistakesPerAirport({});
+      }
+    });
+  }, [airports, isMobile]);
+
+  const handleWrongMarkerClick = useCallback(() => {
+    if (!currentQuestion) return;
+
+    const icao = currentQuestion['ICAO Code'];
+    setMistakesPerAirport(prev => ({
+      ...prev,
+      [icao]: (prev[icao] || 0) + 1
+    }));
+    setErrorCount(prev => prev + 1);
+  }, [currentQuestion]);
+
+  const handleCheckAnswer = useCallback((e) => {
+    e.preventDefault();
+    if (!currentQuestion) return;
+
+    const userAnswerCleaned = userAnswer.trim().toLowerCase();
+    const correctAnswerCleaned = isReversedRef.current
+      ? currentQuestion['ICAO Code'].toLowerCase()
+      : currentQuestion.Airport.toLowerCase();
+
+    if (userAnswerCleaned === correctAnswerCleaned) {
+      const correctAirport = airports.find(a => a['ICAO Code'] === currentQuestion['ICAO Code']);
+      if (correctAirport) handleCorrectAnswer(correctAirport);
+      setUserAnswer('');
+      setHintStage(0);
+      setCurrentHint('');
+    } else {
+      const icao = currentQuestion['ICAO Code'];
+      setMistakesPerAirport(prev => ({
+        ...prev,
+        [icao]: (prev[icao] || 0) + 1
+      }));
+      setErrorCount(prev => prev + 1);
+    }
+  }, [userAnswer, currentQuestion, airports, handleCorrectAnswer]);
+
+  const handleHint = () => {
+    if (!currentQuestion) return;
+
+    const correctAnswer = isReversed 
+      ? currentQuestion['ICAO Code'] 
+      : currentQuestion.Airport;
+
+    if (hintStage === 0) {
+      setCurrentHint(generateHalfHint(correctAnswer));
+      setHintStage(1);
+    } else {
+      const icao = currentQuestion['ICAO Code'];
+      setUserAnswer(correctAnswer);
+      setMistakesPerAirport(prev => ({
+        ...prev,
+        [icao]: Math.max(prev[icao] || 0, 3)
+      }));
+      setHintStage(2);
+      setCurrentHint('');
+    }
+  };
+
+  const toggleQuestionOrder = () => setIsReversed(prev => !prev);
+
+  if (loading) return <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100"><p>Betöltés...</p></div>;
+  if (error) return <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100"><p className="text-red-500">{error}</p></div>;
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="relative w-full max-w-7xl p-4">
+      <div className="relative w-full p-4 max-w-[1600px]">
         {currentQuestion && (
-          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg shadow z-10 flex flex-col items-center gap-2">
-            <button
-            onClick={toggleQuestionOrder}
-            className="absolute top-2 left-2 bg-white p-2 rounded-lg shadow z-10 hover:bg-gray-300 transition-colors"
-            title="Kérdés sorrend váltása"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-blue-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-          </button>
-            <p className="text-lg font-bold text-center">
+          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white p-6 rounded-xl shadow-xl z-20 flex flex-col items-center gap-3 w-full max-w-md">
+            <button onClick={toggleQuestionOrder} className="absolute top-3 left-3 text-gray-500 hover:text-gray-700" title="Kérdés sorrend váltása">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+
+            <p className="text-xl font-bold text-center px-8">
               {isReversed ? currentQuestion.Airport : currentQuestion['ICAO Code']}
             </p>
-            <form onSubmit={handleCheckAnswer} className="flex gap-2">
+
+            {currentHint && (
+              <p className="text-sm text-amber-600 font-mono bg-amber-50 px-4 py-2 rounded-lg">
+                Tipp: {currentHint}
+              </p>
+            )}
+
+            <form onSubmit={handleCheckAnswer} className="flex gap-2 w-full">
               <input
                 type="text"
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
-                placeholder= {isReversed ? 'Írd be az ICAO kódot!' : 'Írd be a repülőtér nevét!'}
-                className="p-2 border rounded"
+                placeholder={isReversed ? 'Írd be az ICAO kódot!' : 'Írd be a repülőtér nevét!'}
+                className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 autoFocus
               />
-              <button
-                type="submit"
-                className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
+              <button type="submit" className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                 Ellenőrzés
               </button>
             </form>
           </div>
         )}
-        <div className="relative w-full h-[800px] rounded-lg shadow">
-          <div
-            ref={mapContainer}
-            className="w-full h-full"
-          ></div>
-          {/* Errors számláló a bal alsó sarokban */}
-          <div className="absolute bottom-4 left-4 bg-white p-2 rounded-lg shadow z-10">
-            <p className="text-lg font-bold text-red-600">
-              Hibák: {errorCount}
-            </p>
+
+        {currentQuestion && (
+          <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20">
+            <button
+              onClick={handleHint}
+              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-full shadow-lg transition-all active:scale-95 font-medium"
+            >
+              <span>💡</span>
+              <span>{hintStage === 0 ? 'Tipp' : hintStage === 1 ? 'Teljes válasz' : 'Tipp használt'}</span>
+            </button>
           </div>
-          {/* Kérdés számláló a jobb alsó sarokban */}
-          <div className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow z-10">
+        )}
+
+        <div className="relative w-full h-[95vh] rounded-xl shadow-2xl overflow-hidden">
+          <div ref={mapContainer} className="w-full h-full" />
+
+          <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-sm px-5 py-3 rounded-xl shadow-lg z-10">
+            <p className="text-lg font-bold text-red-600">Hibák: {errorCount}</p>
+          </div>
+
+          <div className="absolute bottom-6 right-6 bg-white/95 backdrop-blur-sm px-5 py-3 rounded-xl shadow-lg z-10">
             <p className="text-lg font-bold text-blue-600">
-              {currentQuestionIndex}/{airports.length}
+              {currentQuestionIndex + 1} / {airports.length}
             </p>
           </div>
         </div>
